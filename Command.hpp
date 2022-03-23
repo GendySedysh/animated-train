@@ -13,7 +13,7 @@ private:
 	bool						have_prefix;
 
 public:
-	Command(const char *messege);
+	Command(std::string messege);
 	~Command();
 
 	int							get_num_of_args();

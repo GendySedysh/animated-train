@@ -81,6 +81,7 @@ void	Server::process_messages()
 
     char buffer[1024];
     int  readed = 0;
+	memset(buffer, 0, sizeof(buffer));
 	if (pret != 0)
 	{
 		// Read from the connection
@@ -100,21 +101,14 @@ void	Server::process_messages()
 	}
 }
 
-void	Server::cmd_handler(const char *input, User *cmd_init)
+void	Server::cmd_handler(std::string input, User *cmd_init)
 {
-	char **command_s;
-	std::vector<char *>	commands;
+	std::vector<std::string>	commands;
 
-	command_s = ft_split(input, '\n');
-	for (int j = 0; command_s[j]; j++)
-		commands.push_back(command_s[j]);
-
+	tokenize(input, '\n', commands);
+	
 	for (size_t i = 0; i < commands.size(); i++)
 		execute_command(commands[i], cmd_init);
-	
-	for (int j = 0; command_s[j]; j++)
-		free(command_s[j]);
-	free(command_s);
 	commands.clear();
 }
 
@@ -125,22 +119,12 @@ int		Server::cmd_pass(Command to_execute, User *cmd_init)
 	if (to_execute.get_num_of_args() != 1)
 		return 461;
 
-	int		cmp = 0;
-	size_t	it = 0;
-	size_t	i = 0;
-
 	if (arguments[0][0] == ':')
-		it++;
-	while (it != password.size())
-	{
-		if (password[i] != arguments[0][it])
-			cmp++;
-		it++;
-		i++;
-	}
+		arguments[0].erase(0);
 
-	if (cmp == 0)
+	if (password.compare(arguments[0]))
 		cmd_init->set_pass_status(true);
+
 	arguments.clear();
 	return 0;
 }
@@ -181,10 +165,10 @@ int		Server::cmd_nick(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (to_execute.get_num_of_args() == 0)
+	if (arguments.size() == 0)
 		return 431;
 
-	if (arguments[0].size() > 9 || nick_is_valid(arguments[0]) == false)
+	if (arguments[0].length() >= 9 || nick_is_valid(arguments[0]) == false)
 		return 432;
 
 	if (find_user_by_nick(arguments[0]) != NULL)
@@ -257,6 +241,8 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init, bool notice)
 	
 	// Рассылаем сообщения в сообщение
 	for (size_t j = 0; j < messege_for.size(); j++) {
+		std::cout << messege_for[j]->get_nick() << std::endl;
+		print_word_by_letters(messege_for[j]->get_nick());
 		if (notice == false)
 			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " PRIVMSG " + messege_for[j]->get_nick() + " :";
 		else
@@ -375,28 +361,27 @@ void	Server::send_motd(Command to_execute, User *cmd_init)
 	send(cmd_init->get_fd(), ":IRC212 376 :End of /MOTD command\n", 34, 0);
 }
 
-void	Server::execute_command(char *cmd, User *cmd_init)
+void	Server::execute_command(std::string cmd, User *cmd_init)
 {
-	if (cmd[ft_length(cmd) - 1] == 13)
-		cmd[ft_length(cmd) - 1] = 0;
-
 	Command		to_execute(cmd);
 	int			response = 0;
 
-	if (ft_length(cmd) > 1)
+	if (cmd.length() > 1)
 	{
 		to_execute.show_cmd();
 	
 		if (cmd_init->get_auth_status() == false)
 		{
-			if (to_execute.get_cmd().compare("PASS") == 0 && cmd_init->get_pass_ok() == false)
+			if (to_execute.get_cmd().compare("PASS") == 0)
 				response = cmd_pass(to_execute, cmd_init);
 			else if (to_execute.get_cmd().compare("NICK") == 0)
 				response = cmd_nick(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("USER") == 0 && cmd_init->get_username_ok() == false)
+			else if (to_execute.get_cmd().compare("USER") == 0)
 				response = cmd_user(to_execute, cmd_init);
 			else
 				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
+
+			std::cout << response << std::endl;
 		}
 		else
 		{
@@ -469,42 +454,6 @@ Chanel	*Server::find_chanel_by_name(std::string chanel_name)
 
 void	Server::send_string_to_user(User *usr_ptr, std::string massage) {
 	send(usr_ptr->get_fd(), const_cast<char*>(massage.c_str()), massage.length(), 0);
-}
-
-int		string_compare(std::string str1, std::string str2)
-{
-	size_t i = 0;
-
-	if (str1.size() > 1)
-		return -1;
-	while (i < str1.size())
-	{
-		if (str1[i] != str2[i])
-			return -1;
-		i++;
-	}
-	
-	return 0;
-}
-
-void	print_word_by_letters(std::string word)
-{
-	int i = 0;
-	while (word[i])
-	{
-		std::cout << int(word[i]) << " ";
-		i++;
-	}
-	std::cout << std::endl;
-}
-
-bool		nick_is_valid(std::string nick)
-{
-	for (size_t i = 0; i < nick.size(); i++){
-		if (ft_isalpha(nick[i]) == 0 && ft_isdigit(nick[i]) == 0 && ft_isspec(nick[i]) == 0)
-			return false;
-	} 
-	return (true);
 }
 
 void	Server::send_response(Command to_execute, const std::string from, User *cmd_init, int responce)

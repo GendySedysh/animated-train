@@ -55,11 +55,11 @@ public:
 
 	/*	Разбивает пришедшее сообщение на команды по \n и отправляет их на выполнение
 		Параллельно выводит команды на экран (input - строка на ввод, cmd_init - пользователь отправивший сообщение) */
-	void									cmd_handler(const char *input, User *cmd_init);
+	void									cmd_handler(std::string input, User *cmd_init);
 
 	/*	Перврящает строку в комманду в объект класса Command и запускает метод принятой команды
 		(incmdput - строка с командой, cmd_init - пользователь отправивший сообщение)*/
-	void									execute_command(char *cmd, User *cmd_init);
+	void									execute_command(std::string cmd, User *cmd_init);
 
 	int										cmd_pass(Command to_execute, User *cmd_init);
 	int										cmd_user(Command to_execute, User *cmd_init);
@@ -91,13 +91,10 @@ public:
 	Chanel									*find_chanel_by_name(std::string chanel_name);
 };
 
-// void	SplitString(std::string s, std::vector<std::string> &v, char delimiter);
-char	**ft_split(char const *s, char c);
 void	print_word_by_letters(std::string word);
-int		ft_length(const char *str);
 int		ft_isalpha(int c);
 int		ft_isdigit(int c);
 int		ft_isspec(int c);
 bool	nick_is_valid(std::string nick);
-int		string_compare(std::string str1, std::string str2);
+void	tokenize(std::string &str, const char delim, std::vector<std::string> &out);
 #endif
