@@ -49,7 +49,7 @@ public:
 	void									bind_socket();
 	void									listen_socket();
 	void									grab_connection();
-	void									process_messages();
+	int										process_messages();
 
 	// cmd
 

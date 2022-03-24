@@ -73,15 +73,42 @@ void	Server::grab_connection()
 	Отслеживает изменения по fd'шникам пользователей
 	При изменении (вводе данных) забирает данные в буфер и отправляет в cmd_handler
 */
-void	Server::process_messages()
+// void	Server::process_messages()
+// {
+// 	int	pret = poll(userFDs.data(), userFDs.size(), timeout);
+// 	std::vector<int>	toErase;
+// 	std::string			prefix;
+
+//     char buffer[1024];
+//     int  readed = 0;
+// 	memset(buffer, 0, sizeof(buffer));
+// 	if (pret != 0)
+// 	{
+// 		// Read from the connection
+// 		for (size_t i = 0; i < userFDs.size(); i++)
+// 		{
+// 			if (userFDs[i].revents & POLLIN)
+// 			{
+// 				readed = recv(userFDs[i].fd, buffer, 1024, 0);
+// 				if (readed > 0) {
+// 					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
+// 					cmd_handler(buffer, usr_ptr);
+// 					memset(buffer, 0, sizeof(buffer));
+// 				}
+// 			}
+// 			userFDs[i].revents = 0;
+// 		}
+// 	}
+// }
+
+int		Server::process_messages()
 {
 	int	pret = poll(userFDs.data(), userFDs.size(), timeout);
-	std::vector<int>	toErase;
-	std::string			prefix;
 
-    char buffer[1024];
-    int  readed = 0;
-	memset(buffer, 0, sizeof(buffer));
+    std::string	messege;
+	char	buffer[1024];
+	int		readed;
+
 	if (pret != 0)
 	{
 		// Read from the connection
@@ -89,16 +116,26 @@ void	Server::process_messages()
 		{
 			if (userFDs[i].revents & POLLIN)
 			{
-				readed = recv(userFDs[i].fd, buffer, 1024, 0);
-				if (readed > 0) {
-					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
-					cmd_handler(buffer, usr_ptr);
+				readed = 0;
+				memset(buffer, 0, sizeof(buffer));
+				while ((readed = recv(userFDs[i].fd, buffer, 1023, 0)) > 0)
+				{
+					buffer[readed] = '\0';
+					messege += buffer;
 					memset(buffer, 0, sizeof(buffer));
+					if (messege.find('\n') != std::string::npos)
+						break;
 				}
+				if (messege.size() > 1) {
+					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
+					cmd_handler(messege, usr_ptr);
+				}
+				messege.clear();
 			}
 			userFDs[i].revents = 0;
 		}
 	}
+	return (0);
 }
 
 void	Server::cmd_handler(std::string input, User *cmd_init)
@@ -380,8 +417,6 @@ void	Server::execute_command(std::string cmd, User *cmd_init)
 				response = cmd_user(to_execute, cmd_init);
 			else
 				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
-
-			std::cout << response << std::endl;
 		}
 		else
 		{
