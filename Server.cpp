@@ -33,8 +33,8 @@ void	Server::bind_socket()
 		exit(EXIT_FAILURE);
 	}
 	sockaddr.sin_family = AF_INET;
-	sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // INADDR_ANY; Was 0.0.0.0, now 127.0.0.1
-	sockaddr.sin_port = htons(port); // htons is necessary to convert a number to network byte order
+	sockaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	sockaddr.sin_port = htons(port);
 	if (bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0)
 	{
 		std::cout << "Failed to bind to port " << port << ". errno: " << errno << std::endl;
@@ -73,34 +73,6 @@ void	Server::grab_connection()
 	Отслеживает изменения по fd'шникам пользователей
 	При изменении (вводе данных) забирает данные в буфер и отправляет в cmd_handler
 */
-// void	Server::process_messages()
-// {
-// 	int	pret = poll(userFDs.data(), userFDs.size(), timeout);
-// 	std::vector<int>	toErase;
-// 	std::string			prefix;
-
-//     char buffer[1024];
-//     int  readed = 0;
-// 	memset(buffer, 0, sizeof(buffer));
-// 	if (pret != 0)
-// 	{
-// 		// Read from the connection
-// 		for (size_t i = 0; i < userFDs.size(); i++)
-// 		{
-// 			if (userFDs[i].revents & POLLIN)
-// 			{
-// 				readed = recv(userFDs[i].fd, buffer, 1024, 0);
-// 				if (readed > 0) {
-// 					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
-// 					cmd_handler(buffer, usr_ptr);
-// 					memset(buffer, 0, sizeof(buffer));
-// 				}
-// 			}
-// 			userFDs[i].revents = 0;
-// 		}
-// 	}
-// }
-
 int		Server::process_messages()
 {
 	int	pret = poll(userFDs.data(), userFDs.size(), timeout);
@@ -111,7 +83,6 @@ int		Server::process_messages()
 
 	if (pret != 0)
 	{
-		// Read from the connection
 		for (size_t i = 0; i < userFDs.size(); i++)
 		{
 			if (userFDs[i].revents & POLLIN)
@@ -385,10 +356,59 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	return (1);
 }
 
+int		Server::cmd_kick(Command to_execute, User *cmd_init)
+{
+	std::vector<std::string>	arguments = to_execute.get_args();
+	Chanel	*kick_from = find_chanel_by_name(arguments[0]);
+	User	*kick_this = find_user_by_nick(arguments[1]);
+	std::string to_send;
+
+	if (arguments.size() < 2)
+		return ERR_NEEDMOREPARAMS;
+	if (kick_from == NULL)
+		return 100; //ERR_NOSUCHCHANNEL
+	if (kick_from->is_in_channel(kick_this) == false)
+		return 100; //ERR_NOTONCHANNEL
+	if (kick_from->is_operator(cmd_init) == false)
+		return 100; //ERR_CHANOPRIVSNEEDED
+
+	to_send += "KICK" + kick_from->get_name() + " " + kick_this->get_nick();
+	for (size_t i = 2; i < arguments.size(); i++)
+		to_send += " " + arguments[i];
+	to_send += "\n";
+
+	kick_from->delete_user_from_channel(kick_this);
+	kick_from->send_messege_to_chanel(to_send, this, false, cmd_init);
+	return (0);
+}
+
+int		Server::cmd_part(Command to_execute, User *cmd_init)
+{
+	std::vector<std::string>	arguments = to_execute.get_args();
+	std::vector<Chanel *>		kick_from;
+	std::string to_send;
+
+	for (size_t i = 0; i < arguments.size(); i++) {
+		if (arguments[i][0] == ',')
+			arguments[i].erase(1);
+		if (arguments.size() < 1)
+			return ERR_NEEDMOREPARAMS;
+		if (find_chanel_by_name(arguments[i]) == NULL)
+			return 100; //ERR_NOSUCHCHANNEL
+		if (find_chanel_by_name(arguments[i])->is_in_channel(cmd_init) == false)
+			return 100; //ERR_NOTONCHANNEL
+		kick_from.push_back(find_chanel_by_name(arguments[i]));
+	}
+	
+	for (size_t i = 0; i < kick_from.size(); i++)
+		kick_from[i]->delete_user_from_channel(cmd_init);
+
+	return 0;
+}
+
 /*
 	Отправляет сообщение дня по FD'шнику
 */
-
 void	Server::send_motd(Command to_execute, User *cmd_init)
 {
 	void (to_execute.get_cmd());
@@ -442,6 +462,10 @@ void	Server::execute_command(std::string cmd, User *cmd_init)
 				cmd_quit(to_execute, cmd_init);
 			else if (to_execute.get_cmd().compare("JOIN") == 0)
 				cmd_join(to_execute, cmd_init);
+			else if (to_execute.get_cmd().compare("KICK") == 0)
+				cmd_kick(to_execute, cmd_init);
+			else if (to_execute.get_cmd().compare("PART") == 0)
+				cmd_part(to_execute, cmd_init);
 			else
 				send_response(to_execute, name, cmd_init, ERR_UNKNOWNCOMMAND);
 		}

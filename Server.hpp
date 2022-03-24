@@ -69,6 +69,8 @@ public:
 	int										cmd_ping(Command to_execute, User *cmd_init);
 	int										cmd_pong(Command to_execute, User *cmd_init);
 	int										cmd_join(Command to_execute, User *cmd_init);
+	int										cmd_kick(Command to_execute, User *cmd_init);
+	int										cmd_part(Command to_execute, User *cmd_init);
 	void									cmd_quit(Command to_execute, User *cmd_init);
 	void									cmd_online(User *cmd_init);
 	void									cmd_ison(Command to_execute, User *cmd_init);
