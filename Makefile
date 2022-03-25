@@ -1,5 +1,5 @@
 NAME		=	ircserv
-SRCS		=	main.cpp Server.cpp User.cpp Command.cpp Chanel.cpp utils.cpp
+SRCS		=	main.cpp Server.cpp User.cpp Command.cpp Chanel.cpp utils.cpp response.cpp
 OBJS		=	$(SRCS:.cpp=.o)
 DEPS		=	$(SRCS:.cpp=.d)
 CC			=	clang++
