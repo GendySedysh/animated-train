@@ -26,6 +26,9 @@
 class User;
 class Command;
 class Chanel;
+class Server;
+
+typedef  int (Server::*MappedCMD) (Command, User *); // using???
 
 class Server
 {
@@ -39,6 +42,8 @@ private:
 	std::vector<User*>						users;
 	std::vector<Chanel*>					chanels;
 	std::string								name;
+	
+	std::map<std::string, MappedCMD>			commands;
 public:
 	Server(int port, char *pass);
 	~Server();
@@ -64,16 +69,16 @@ public:
 	int										cmd_pass(Command to_execute, User *cmd_init);
 	int										cmd_user(Command to_execute, User *cmd_init);
 	int										cmd_nick(Command to_execute, User *cmd_init);
-	int										cmd_privmsg(Command to_execute, User *cmd_init, bool notice);
+	int										cmd_privmsg(Command to_execute, User *cmd_init);
 	int										cmd_away(Command to_execute, User *cmd_init);
 	int										cmd_ping(Command to_execute, User *cmd_init);
 	int										cmd_pong(Command to_execute, User *cmd_init);
 	int										cmd_join(Command to_execute, User *cmd_init);
 	int										cmd_kick(Command to_execute, User *cmd_init);
 	int										cmd_part(Command to_execute, User *cmd_init);
-	void									cmd_quit(Command to_execute, User *cmd_init);
-	void									cmd_online(User *cmd_init);
-	void									cmd_ison(Command to_execute, User *cmd_init);
+	int										cmd_quit(Command to_execute, User *cmd_init);
+	int										cmd_online(Command to_execute, User *cmd_init);
+	int										cmd_ison(Command to_execute, User *cmd_init);
 	void									send_motd(Command to_execute, User *cmd_init);
 	void									send_response(Command to_execute, const std::string from, User *cmd_init, int responce);
 

@@ -2,6 +2,19 @@
 
 Server::Server(int port, char *pass): port(port), timeout(1), password(pass), name("IRC21")
 {
+	commands["PASS"] = &Server::cmd_pass;
+	commands["USER"] = &Server::cmd_user;
+	commands["NICK"] = &Server::cmd_nick;
+	commands["PRIVMSG"] = &Server::cmd_privmsg;
+	commands["AWAY"] = &Server::cmd_away;
+	commands["PING"] = &Server::cmd_ping;
+	commands["PONG"] = &Server::cmd_pong;
+	commands["JOIN"] = &Server::cmd_join;
+	commands["KICK"] = &Server::cmd_kick;
+	commands["PART"] = &Server::cmd_part;
+	commands["QUIT"] = &Server::cmd_quit;
+	commands["ONLINE"] = &Server::cmd_online;
+	commands["ISON"] = &Server::cmd_ison;
 }
 
 Server::~Server()
@@ -198,7 +211,7 @@ int		Server::cmd_nick(Command to_execute, User *cmd_init)
 /*
 	Отправляет сообщение
 */
-int		Server::cmd_privmsg(Command to_execute, User *cmd_init, bool notice)
+int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 {
 	std::vector<User *>			messege_for;
 	std::vector<Chanel *>		ch_messege_for;
@@ -206,7 +219,11 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init, bool notice)
 	std::string					header;
 	std::string					to_send;
 	std::string					away_msg;
+	bool						notice = false;
 	int							i = 0;
+
+	if (to_execute.get_cmd().compare("NOTICE") == 0)
+		notice = true;
 
 	// Формируем список получателей
 	while (i < to_execute.get_num_of_args() && arguments[i][0] != ':') {
@@ -304,7 +321,7 @@ int		Server::cmd_away(Command to_execute, User *cmd_init)
 	}
 }
 
-void	Server::cmd_quit(Command to_execute, User *cmd_init)
+int		Server::cmd_quit(Command to_execute, User *cmd_init)
 {
 	(void) to_execute;
 
@@ -314,6 +331,8 @@ void	Server::cmd_quit(Command to_execute, User *cmd_init)
 	cmd_init->set_nick_status(false);
 	cmd_init->set_username_status(false);
 	close (cmd_init->get_fd());
+
+	return (1);
 }
 
 int		Server::cmd_ping(Command to_execute, User *cmd_init)
@@ -321,16 +340,25 @@ int		Server::cmd_ping(Command to_execute, User *cmd_init)
 	if (to_execute.get_num_of_args() == 0)
 		return (ERR_NOORIGIN);
 	send_string_to_user(cmd_init, ":" + this->name + " PONG :" + to_execute.get_args()[0] + "\n");
-	return 0;
+	return 1;
 }
 
-void		Server::cmd_ison(Command to_execute, User *cmd_init)
+int		Server::cmd_pong(Command to_execute, User *cmd_init){
+	(void) to_execute;
+	(void) cmd_init;
+
+	return (1);
+}
+
+int			Server::cmd_ison(Command to_execute, User *cmd_init)
 {
 	send_response(to_execute, name, cmd_init, RPL_ISON);
+	return (1);
 }
 
-void		Server::cmd_online(User *cmd_init)
+int			Server::cmd_online(Command to_execute, User *cmd_init)
 {
+	(void) to_execute;
 	std::string msg;
 
 	for (size_t i = 0; i < users.size(); i++)
@@ -341,6 +369,7 @@ void		Server::cmd_online(User *cmd_init)
 	msg += '\n';
 
 	send_string_to_user(cmd_init, msg);
+	return (1);
 }
 
 int		Server::cmd_join(Command to_execute, User *cmd_init)
@@ -372,11 +401,11 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	if (arguments.size() < 2)
 		return ERR_NEEDMOREPARAMS;
 	if (kick_from == NULL)
-		return ERR_NOSUCHCHANNEL; //
+		return ERR_NOSUCHCHANNEL;
 	if (kick_from->is_in_channel(kick_this) == false)
-		return ERR_NOTONCHANNEL; //
+		return ERR_NOTONCHANNEL;
 	if (kick_from->is_operator(cmd_init) == false)
-		return ERR_CHANOPRIVSNEEDED; //
+		return ERR_CHANOPRIVSNEEDED;
 
 	to_send += "KICK " + kick_from->get_name() + " " + kick_this->get_nick();
 	for (size_t i = 2; i < arguments.size(); i++)
@@ -427,57 +456,27 @@ void	Server::send_motd(Command to_execute, User *cmd_init)
 void	Server::execute_command(std::string cmd, User *cmd_init)
 {
 	Command		to_execute(cmd);
+	std::string	command = to_execute.get_cmd();
 	int			response = 0;
 
 	if (cmd.length() > 1)
 	{
 		to_execute.show_cmd();
 	
-		if (cmd_init->get_auth_status() == false)
-		{
-			if (to_execute.get_cmd().compare("PASS") == 0)
-				response = cmd_pass(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("NICK") == 0)
-				response = cmd_nick(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("USER") == 0)
-				response = cmd_user(to_execute, cmd_init);
-			else
+		if (!(cmd_init->get_auth_status()) == true && command != "PASS" && command != "NICK"
+			&& command != "USER" && command !="QUIT")
 				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
-		}
 		else
 		{
-			if (to_execute.get_cmd().compare("PASS") == 0)
-				response = cmd_pass(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("NICK") == 0)
-				response = cmd_nick(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("USER") == 0)
-				response = cmd_user(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("PRIVMSG") == 0)
-				response = cmd_privmsg(to_execute, cmd_init, false);
-			else if (to_execute.get_cmd().compare("NOTICE") == 0)
-				response = cmd_privmsg(to_execute, cmd_init, true);
-			else if (to_execute.get_cmd().compare("AWAY") == 0)
-				response = cmd_away(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("ISON") == 0)
-				cmd_ison(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("PING") == 0)
-				response = cmd_ping(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("ONLINE") == 0)
-				cmd_online(cmd_init);
-			else if (to_execute.get_cmd().compare("QUIT") == 0)
-				cmd_quit(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("JOIN") == 0)
-				response = cmd_join(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("KICK") == 0)
-				response = cmd_kick(to_execute, cmd_init);
-			else if (to_execute.get_cmd().compare("PART") == 0)
-				response = cmd_part(to_execute, cmd_init);
-			else
+			if (commands[command] == 0)
 				send_response(to_execute, name, cmd_init, ERR_UNKNOWNCOMMAND);
+			else {
+				response = (this->*(commands.at(command)))(to_execute, cmd_init);
+				if (response != 0)
+					send_response(to_execute, name, cmd_init, response);
+			}
 		}
 	}
-	if (response != 0)
-		send_response(to_execute, name, cmd_init, response);
 }
 
 bool	Server::have_user(int new_user_fd)
@@ -526,14 +525,13 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 	std::stringstream	ss;
 	ss << responce;
 	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
-	// msg += ss.str() + " " + cmd_init->get_nick() + " ";
 
 	std::vector<std::string>	arguments = to_execute.get_args();
 	Chanel *chanel = find_chanel_by_name(arguments[0]);
 
 	switch (responce)
 	{
-	case RPL_ISON:								//ISON
+	case RPL_ISON:
 		msg += ":";
 		for (size_t i = 0; i < arguments.size(); i++)
 		{
@@ -542,19 +540,19 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		}
 		msg += "\n";
 		break;
-	case RPL_UNAWAY:							//AWAY
+	case RPL_UNAWAY:
 		msg += ":You are no longer marked as being away\n";
 		break;
-	case RPL_NOWAWAY:							//AWAY
+	case RPL_NOWAWAY:
 		msg = ":You have been marked as being away\n";
 		break;
-	case RPL_MOTDSTART:							//MOTD
+	case RPL_MOTDSTART:
 		msg = ":- Message of the day - \n";
 		break;
-	case RPL_MOTD:								//MOTD
+	case RPL_MOTD:
 		msg = ":- Welcome to school 21 fsteffan's server!\n";
 		break;
-	case RPL_ENDOFMOTD:							//MOTD
+	case RPL_ENDOFMOTD:
 		msg += ":End of /MOTD command\n";
 		break;
 	case RPL_TOPIC:
