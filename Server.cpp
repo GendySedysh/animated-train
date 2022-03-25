@@ -345,15 +345,21 @@ void		Server::cmd_online(User *cmd_init)
 
 int		Server::cmd_join(Command to_execute, User *cmd_init)
 {
-	Chanel	*chanel;
-	chanel = find_chanel_by_name(to_execute.get_args()[0]);
+	std::vector<std::string>	arguments = to_execute.get_args();
+
+	if (arguments.size() < 1)
+		return ERR_NEEDMOREPARAMS;
+			
+	Chanel	*chanel = find_chanel_by_name(to_execute.get_args()[0]);
 	
 	if (chanel == NULL)	// Создаём канал
 		chanels.push_back(new Chanel(to_execute.get_args()[0], cmd_init));
 	else				// Добавляем в канал если канал уже существует
 		chanel->add_user_to_channel(cmd_init);
-	send_string_to_user(cmd_init, "You've joined chanel " + to_execute.get_args()[0] + "\n");
-	return (1);
+	send_response(to_execute, name, cmd_init, RPL_TOPIC);
+	send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
+	send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
+	return (0);
 }
 
 int		Server::cmd_kick(Command to_execute, User *cmd_init)
@@ -366,13 +372,13 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	if (arguments.size() < 2)
 		return ERR_NEEDMOREPARAMS;
 	if (kick_from == NULL)
-		return 100; //ERR_NOSUCHCHANNEL
+		return ERR_NOSUCHCHANNEL; //
 	if (kick_from->is_in_channel(kick_this) == false)
-		return 100; //ERR_NOTONCHANNEL
+		return ERR_NOTONCHANNEL; //
 	if (kick_from->is_operator(cmd_init) == false)
-		return 100; //ERR_CHANOPRIVSNEEDED
+		return ERR_CHANOPRIVSNEEDED; //
 
-	to_send += "KICK" + kick_from->get_name() + " " + kick_this->get_nick();
+	to_send += "KICK " + kick_from->get_name() + " " + kick_this->get_nick();
 	for (size_t i = 2; i < arguments.size(); i++)
 		to_send += " " + arguments[i];
 	to_send += "\n";
@@ -394,9 +400,9 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 		if (arguments.size() < 1)
 			return ERR_NEEDMOREPARAMS;
 		if (find_chanel_by_name(arguments[i]) == NULL)
-			return 100; //ERR_NOSUCHCHANNEL
+			return ERR_NOSUCHCHANNEL;
 		if (find_chanel_by_name(arguments[i])->is_in_channel(cmd_init) == false)
-			return 100; //ERR_NOTONCHANNEL
+			return ERR_NOTONCHANNEL;
 		kick_from.push_back(find_chanel_by_name(arguments[i]));
 	}
 	
@@ -461,11 +467,11 @@ void	Server::execute_command(std::string cmd, User *cmd_init)
 			else if (to_execute.get_cmd().compare("QUIT") == 0)
 				cmd_quit(to_execute, cmd_init);
 			else if (to_execute.get_cmd().compare("JOIN") == 0)
-				cmd_join(to_execute, cmd_init);
+				response = cmd_join(to_execute, cmd_init);
 			else if (to_execute.get_cmd().compare("KICK") == 0)
-				cmd_kick(to_execute, cmd_init);
+				response = cmd_kick(to_execute, cmd_init);
 			else if (to_execute.get_cmd().compare("PART") == 0)
-				cmd_part(to_execute, cmd_init);
+				response = cmd_part(to_execute, cmd_init);
 			else
 				send_response(to_execute, name, cmd_init, ERR_UNKNOWNCOMMAND);
 		}
@@ -519,10 +525,11 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 {
 	std::stringstream	ss;
 	ss << responce;
-	std::string	msg = ":" + from + " " + ss.str() + " ";
+	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
 	// msg += ss.str() + " " + cmd_init->get_nick() + " ";
 
 	std::vector<std::string>	arguments = to_execute.get_args();
+	Chanel *chanel = find_chanel_by_name(arguments[0]);
 
 	switch (responce)
 	{
@@ -549,6 +556,23 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		break;
 	case RPL_ENDOFMOTD:							//MOTD
 		msg += ":End of /MOTD command\n";
+		break;
+	case RPL_TOPIC:
+		msg += chanel->get_name() + " :No topic set\n";
+		break;
+	case RPL_NAMREPLY:
+		if (chanel != NULL){
+			std::vector<std::string> user_names = chanel->get_user_name_vec();
+
+			msg += chanel->get_name() + " :";
+			for (size_t i = 0; i < user_names.size(); i++) {
+				msg += "@" + user_names[i] + " ";
+			}
+		}
+		msg += "\n";
+		break;
+	case RPL_ENDRPL_NAMREPLY:
+		msg += chanel->get_name() + " :End of /NAMES list\n";
 		break;
 	case ERR_NONICKNAMEGIVEN:
 		msg += ":No nickname given\n";
@@ -579,6 +603,15 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		break;
 	case ERR_NOTREGISTERED:
 		msg += ":You have not registered\n";
+		break;
+	case ERR_NOSUCHCHANNEL:
+		msg += chanel->get_name() + " :No such channel\n";
+		break;
+	case ERR_NOTONCHANNEL:
+		msg += chanel->get_name() + " :You're not on that channel\n";
+		break;
+	case ERR_CHANOPRIVSNEEDED:
+		msg += chanel->get_name() + " :You're not channel operator\n";
 		break;
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);

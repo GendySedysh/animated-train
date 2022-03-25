@@ -17,6 +17,8 @@ public:
 	~Chanel();
 
 	std::string	get_name();
+	// int							get_num_of_users();
+	std::vector<std::string>	get_user_name_vec();
 	bool	is_operator(User *user);
 	bool	is_in_channel(User *user);
 	int		add_user_to_channel(User *user);

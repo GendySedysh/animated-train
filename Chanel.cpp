@@ -11,6 +11,15 @@ Chanel::~Chanel()
 {
 }
 
+std::vector<std::string>	Chanel::get_user_name_vec() {
+	std::vector<std::string> user_names;
+
+	for (size_t i = 0; i < users.size(); i++) {
+		user_names.push_back(users[i]->get_nick());
+	}
+	return (user_names);
+}
+
 std::string	Chanel::get_name() {return this->name; }
 
 bool	Chanel::is_operator(User *user) {

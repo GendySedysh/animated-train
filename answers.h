@@ -16,6 +16,9 @@
 #define ERR_ALREADYREGISTRED	462
 #define ERR_NOORIGIN			409
 #define	ERR_NOTREGISTERED		451
+#define	ERR_NOSUCHCHANNEL		403
+#define	ERR_NOTONCHANNEL		442
+#define	ERR_CHANOPRIVSNEEDED	482
 
 
 #define RPL_ISON				303
@@ -25,3 +28,6 @@
 #define RPL_MOTDSTART			375
 #define RPL_MOTD				372
 #define RPL_ENDOFMOTD			376
+#define RPL_NAMREPLY			353
+#define RPL_TOPIC				332
+#define	RPL_ENDRPL_NAMREPLY		366 //user #test :End of /NAMES list
