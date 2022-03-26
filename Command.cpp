@@ -1,17 +1,17 @@
 #include "Command.hpp"
 
-Command::Command(std::string messege)
+Command::Command(std::string message)
 {
 	std::vector<std::string> words;
 
 	int i = 0;
 
-	if (messege.length() > 1)
+	if (message.length() > 1)
 	{
 		prefix = " ";
 
-		tokenize(messege, ' ', words);
-		if (messege[0] == ':'){
+		tokenize(message, ' ', words);
+		if (message[0] == ':'){
 			have_prefix = true;
 			prefix = words[0].erase(0, 1);
 			cmd = words[1];

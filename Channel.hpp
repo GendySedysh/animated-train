@@ -6,15 +6,15 @@
 class Server;
 class User;
 
-class Chanel
+class Channel
 {
 private:
 	std::vector<User *>		operators;
 	std::vector<User *>		users;
 	std::string				name;
 public:
-	Chanel(std::string name, User *creator);
-	~Chanel();
+	Channel(std::string name, User *creator);
+	~Channel();
 
 	std::string	get_name();
 	// int							get_num_of_users();
@@ -24,7 +24,7 @@ public:
 	int		add_user_to_channel(User *user);
 	int		delete_user_from_channel(User *user);
 	int		add_user_to_channel_operator(User *user);
-	void	send_messege_to_chanel(std::string messege, Server *server, bool notice, User *sender);
+	void	send_messege_to_channel(std::string messege, Server *server, bool notice, User *sender);
 };
 
 #endif

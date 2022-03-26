@@ -22,9 +22,9 @@ Server::~Server()
 	for (size_t i = 0; i < users.size(); i++)
 		delete users[i];
 	users.clear();
-	for (size_t i = 0; i < chanels.size(); i++)
-		delete chanels[i];
-	chanels.clear();
+	for (size_t i = 0; i < channels.size(); i++)
+		delete channels[i];
+	channels.clear();
 }
 
 void	Server::create_socket()
@@ -90,7 +90,7 @@ int		Server::process_messages()
 {
 	int	pret = poll(userFDs.data(), userFDs.size(), timeout);
 
-    std::string	messege;
+    std::string	message;
 	char	buffer[1024];
 	int		readed;
 
@@ -105,16 +105,16 @@ int		Server::process_messages()
 				while ((readed = recv(userFDs[i].fd, buffer, 1023, 0)) > 0)
 				{
 					buffer[readed] = '\0';
-					messege += buffer;
+					message += buffer;
 					memset(buffer, 0, sizeof(buffer));
-					if (messege.find('\n') != std::string::npos)
+					if (message.find('\n') != std::string::npos)
 						break;
 				}
-				if (messege.size() > 1) {
+				if (message.size() > 1) {
 					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
-					cmd_handler(messege, usr_ptr);
+					cmd_handler(message, usr_ptr);
 				}
-				messege.clear();
+				message.clear();
 			}
 			userFDs[i].revents = 0;
 		}
@@ -214,7 +214,7 @@ int		Server::cmd_nick(Command to_execute, User *cmd_init)
 int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 {
 	std::vector<User *>			messege_for;
-	std::vector<Chanel *>		ch_messege_for;
+	std::vector<Channel *>		ch_messege_for;
 	std::vector<std::string>	arguments = to_execute.get_args();
 	std::string					header;
 	std::string					to_send;
@@ -239,9 +239,9 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	while (i < to_execute.get_num_of_args() && arguments[i][0] != ':') {
 		if (*(arguments[i].end() - 1) == ',')
 			arguments[i].erase(arguments[i].end() - 1);
-		if (find_chanel_by_name(arguments[i]))
-			if ((find_chanel_by_name(arguments[i])->is_in_channel(cmd_init)) == true)
-				ch_messege_for.push_back(find_chanel_by_name(arguments[i]));
+		if (find_channel_by_name(arguments[i]))
+			if ((find_channel_by_name(arguments[i])->is_in_channel(cmd_init)) == true)
+				ch_messege_for.push_back(find_channel_by_name(arguments[i]));
 		i++;
 	}
 	if (messege_for.size() == 0 && ch_messege_for.size() == 0)
@@ -262,7 +262,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 
 	// Рассылаем сообщения в каналы
 	for (size_t i = 0; i < ch_messege_for.size(); i++)
-		ch_messege_for[i]->send_messege_to_chanel(to_send, this, notice, cmd_init);
+		ch_messege_for[i]->send_messege_to_channel(to_send, this, notice, cmd_init);
 	
 	// Рассылаем сообщения в сообщение
 	for (size_t j = 0; j < messege_for.size(); j++) {
@@ -379,10 +379,10 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	if (arguments.size() < 1)
 		return ERR_NEEDMOREPARAMS;
 			
-	Chanel	*chanel = find_chanel_by_name(to_execute.get_args()[0]);
+	Channel	*chanel = find_channel_by_name(to_execute.get_args()[0]);
 	
 	if (chanel == NULL)	// Создаём канал
-		chanels.push_back(new Chanel(to_execute.get_args()[0], cmd_init));
+		channels.push_back(new Channel(to_execute.get_args()[0], cmd_init));
 	else				// Добавляем в канал если канал уже существует
 		chanel->add_user_to_channel(cmd_init);
 	send_response(to_execute, name, cmd_init, RPL_TOPIC);
@@ -394,7 +394,7 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 int		Server::cmd_kick(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
-	Chanel	*kick_from = find_chanel_by_name(arguments[0]);
+	Channel	*kick_from = find_channel_by_name(arguments[0]);
 	User	*kick_this = find_user_by_nick(arguments[1]);
 	std::string to_send;
 
@@ -413,14 +413,14 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	to_send += "\n";
 
 	kick_from->delete_user_from_channel(kick_this);
-	kick_from->send_messege_to_chanel(to_send, this, false, cmd_init);
+	kick_from->send_messege_to_channel(to_send, this, false, cmd_init);
 	return (0);
 }
 
 int		Server::cmd_part(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
-	std::vector<Chanel *>		kick_from;
+	std::vector<Channel *>		kick_from;
 	std::string to_send;
 
 	for (size_t i = 0; i < arguments.size(); i++) {
@@ -428,11 +428,11 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 			arguments[i].erase(1);
 		if (arguments.size() < 1)
 			return ERR_NEEDMOREPARAMS;
-		if (find_chanel_by_name(arguments[i]) == NULL)
+		if (find_channel_by_name(arguments[i]) == NULL)
 			return ERR_NOSUCHCHANNEL;
-		if (find_chanel_by_name(arguments[i])->is_in_channel(cmd_init) == false)
+		if (find_channel_by_name(arguments[i])->is_in_channel(cmd_init) == false)
 			return ERR_NOTONCHANNEL;
-		kick_from.push_back(find_chanel_by_name(arguments[i]));
+		kick_from.push_back(find_channel_by_name(arguments[i]));
 	}
 	
 	for (size_t i = 0; i < kick_from.size(); i++)
@@ -464,7 +464,7 @@ void	Server::execute_command(std::string cmd, User *cmd_init)
 		to_execute.show_cmd();
 	
 		if (!(cmd_init->get_auth_status() == true) && command != "PASS" && command != "NICK"
-			&& command != "USER" && command !="QUIT")
+			&& command != "USER" && command != "QUIT")
 				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
 		else
 		{
@@ -506,12 +506,12 @@ User	*Server::find_user_by_nick(std::string user_nick)
 	return NULL;
 }
 
-Chanel	*Server::find_chanel_by_name(std::string chanel_name)
+Channel	*Server::find_channel_by_name(std::string channel_name)
 {
-	for (size_t i = 0; i < chanels.size(); i++)
+	for (size_t i = 0; i < channels.size(); i++)
 	{
-		if (chanels[i]->get_name() == chanel_name)
-			return chanels[i];
+		if (channels[i]->get_name() == channel_name)
+			return channels[i];
 	}
 	return NULL;
 }

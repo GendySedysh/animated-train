@@ -1,15 +1,15 @@
 #include "Server.hpp"
 
-void	Server::send_response(Command to_execute, const std::string from, User *cmd_init, int responce)
+void	Server::send_response(Command to_execute, const std::string from, User *cmd_init, int response)
 {
 	std::stringstream	ss;
-	ss << responce;
+	ss << response;
 	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
 
 	std::vector<std::string>	arguments = to_execute.get_args();
-	Chanel *chanel = find_chanel_by_name(arguments[0]);
+	Channel *channel = find_channel_by_name(arguments[0]);
 
-	switch (responce)
+	switch (response)
 	{
 	case RPL_ISON:
 		msg += ":";
@@ -36,13 +36,13 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += ":End of /MOTD command\n";
 		break;
 	case RPL_TOPIC:
-		msg += chanel->get_name() + " :No topic set\n";
+		msg += channel->get_name() + " :No topic set\n";
 		break;
 	case RPL_NAMREPLY:
-		if (chanel != NULL){
-			std::vector<std::string> user_names = chanel->get_user_name_vec();
+		if (channel != NULL){
+			std::vector<std::string> user_names = channel->get_user_name_vec();
 
-			msg += chanel->get_name() + " :";
+			msg += channel->get_name() + " :";
 			for (size_t i = 0; i < user_names.size(); i++) {
 				msg += "@" + user_names[i] + " ";
 			}
@@ -50,7 +50,7 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += "\n";
 		break;
 	case RPL_ENDRPL_NAMREPLY:
-		msg += chanel->get_name() + " :End of /NAMES list\n";
+		msg += channel->get_name() + " :End of /NAMES list\n";
 		break;
 	case ERR_NONICKNAMEGIVEN:
 		msg += ":No nickname given\n";
@@ -83,13 +83,13 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += ":You have not registered\n";
 		break;
 	case ERR_NOSUCHCHANNEL:
-		msg += chanel->get_name() + " :No such channel\n";
+		msg += channel->get_name() + " :No such channel\n";
 		break;
 	case ERR_NOTONCHANNEL:
-		msg += chanel->get_name() + " :You're not on that channel\n";
+		msg += channel->get_name() + " :You're not on that channel\n";
 		break;
 	case ERR_CHANOPRIVSNEEDED:
-		msg += chanel->get_name() + " :You're not channel operator\n";
+		msg += channel->get_name() + " :You're not channel operator\n";
 		break;
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);
