@@ -9,7 +9,7 @@ private:
 	std::string		nick;
 	std::string		username;
 	std::string		realname;
-	std::string		away_massage;
+	std::string		away_message;
 	std::string		address;
 	int				user_fd;
 	bool			away_on;
@@ -29,9 +29,9 @@ public:
 	void			set_nick_status(bool status);
 	void			set_username_status(bool status);
 	void			set_auth_status(bool status);
-	void			set_away_massage(std::string massage);
+	void			set_away_message(std::string message);
 	void			set_away_on(bool status);
-	void			set_address(std::string messege);
+	void			set_address(std::string message);
 	int				get_fd();
 	bool			get_auth_status();
 	bool			get_pass_ok();
@@ -40,7 +40,7 @@ public:
 	std::string		get_nick(void);
 	std::string		get_username(void);
 	std::string		get_realname(void);
-	std::string		get_away_massage();
+	std::string		get_away_message();
 	std::string		get_address();
 	bool			get_away_on();
 };

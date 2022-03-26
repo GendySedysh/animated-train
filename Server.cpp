@@ -255,8 +255,10 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	while (i < to_execute.get_num_of_args() && arguments[i][0] != ':') {
 		if (*(arguments[i].end() - 1) == ',')
 			arguments[i].erase(arguments[i].end() - 1);
-		if (find_user_by_nick(arguments[i]) && find_user_by_nick(arguments[i])->get_auth_status())
-			message_for.push_back(find_user_by_nick(arguments[i]));
+		
+		User*	user_ptr = find_user_by_nick(arguments[i]);
+		if (user_ptr && user_ptr->get_auth_status())
+			message_for.push_back(user_ptr);
 		i++;
 	}
 
@@ -265,9 +267,11 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	while (i < to_execute.get_num_of_args() && arguments[i][0] != ':') {
 		if (*(arguments[i].end() - 1) == ',')
 			arguments[i].erase(arguments[i].end() - 1);
-		if (find_channel_by_name(arguments[i]))
-			if ((find_channel_by_name(arguments[i])->is_in_channel(cmd_init)) == true)
-				ch_message_for.push_back(find_channel_by_name(arguments[i]));
+
+		Channel*	channel_ptr = find_channel_by_name(arguments[i]);
+		if (channel_ptr)
+			if (channel_ptr->is_in_channel(cmd_init) == true)
+				ch_message_for.push_back(channel_ptr);
 		i++;
 	}
 	if (message_for.size() == 0 && ch_message_for.size() == 0)
@@ -304,7 +308,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 
 		// Обработка AWAY сообщения
 		if (message_for[j]->get_away_on() == true && notice == false) {
-			away_msg = ":" + name + " 301 " + cmd_init->get_nick() + " " + message_for[j]->get_nick() + " :" + message_for[j]->get_away_massage();
+			away_msg = ":" + name + " 301 " + cmd_init->get_nick() + " " + message_for[j]->get_nick() + " :" + message_for[j]->get_away_message();
 			send_string_to_user(cmd_init, away_msg);
 			away_msg.clear();
 		}
@@ -334,14 +338,14 @@ int		Server::cmd_away(Command to_execute, User *cmd_init)
 			to_save += arguments[i] + " ";
  		to_save += "\n";
 
-		cmd_init->set_away_massage(to_save);
+		cmd_init->set_away_message(to_save);
 		arguments.clear();
 		return RPL_NOWAWAY;
 	}
 	else
 	{
 		cmd_init->set_away_on(false);
-		cmd_init->set_away_massage("\0");
+		cmd_init->set_away_message("\0");
 		arguments.clear();
 		return RPL_UNAWAY;
 	}
@@ -516,6 +520,6 @@ Channel	*Server::find_channel_by_name(std::string channel_name)
 	return NULL;
 }
 
-void	Server::send_string_to_user(User *usr_ptr, std::string massage) {
-	send(usr_ptr->get_fd(), const_cast<char*>(massage.c_str()), massage.length(), 0);
+void	Server::send_string_to_user(User *usr_ptr, std::string message) {
+	send(usr_ptr->get_fd(), const_cast<char*>(message.c_str()), message.length(), 0);
 }
