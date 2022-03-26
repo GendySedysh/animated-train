@@ -24,7 +24,7 @@ public:
 	int		add_user_to_channel(User *user);
 	int		delete_user_from_channel(User *user);
 	int		add_user_to_channel_operator(User *user);
-	void	send_message_to_channel(std::string messege, Server *server, bool notice, User *sender);
+	void	send_message_to_channel(std::string message, Server *server, bool notice, User *sender);
 };
 
 #endif

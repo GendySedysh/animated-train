@@ -47,7 +47,7 @@ int		Channel::delete_user_from_channel(User *user) {
 	return 1;
 }
 int		Channel::add_user_to_channel_operator(User *user) {this->operators.push_back(user); return 0;}
-void	Channel::send_message_to_channel(std::string messege, Server *server, bool notice, User *sender) {
+void	Channel::send_message_to_channel(std::string message, Server *server, bool notice, User *sender) {
 	std::string header;
 
 	for (size_t i = 0; i < users.size(); i++) {
@@ -57,7 +57,7 @@ void	Channel::send_message_to_channel(std::string messege, Server *server, bool 
 			header = ":" + sender->get_nick() + "!" + sender->get_username() + "@" + sender->get_address() + " NOTICE " + this->get_name() + " :";
 		if (is_in_channel(sender) == true && users[i] != sender) {
 			server->send_string_to_user(users[i], header);
-			server->send_string_to_user(users[i], messege);
+			server->send_string_to_user(users[i], message);
 		}
 		header.clear();
 	}
