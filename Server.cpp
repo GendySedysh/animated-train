@@ -133,6 +133,32 @@ void	Server::cmd_handler(std::string input, User *cmd_init)
 	commands.clear();
 }
 
+void	Server::execute_command(std::string cmd, User *cmd_init)
+{
+	Command		to_execute(cmd);
+	std::string	command = to_execute.get_cmd();
+	int			response = 0;
+
+	if (cmd.length() > 1)
+	{
+		to_execute.show_cmd();
+	
+		if (!(cmd_init->get_auth_status() == true) && command != "PASS" && command != "NICK"
+			&& command != "USER" && command != "QUIT")
+				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
+		else
+		{
+			if (commands[command] == 0)
+				send_response(to_execute, name, cmd_init, ERR_UNKNOWNCOMMAND);
+			else {
+				response = (this->*(commands.at(command)))(to_execute, cmd_init);
+				if (response != 0)
+					send_response(to_execute, name, cmd_init, response);
+			}
+		}
+	}
+}
+
 int		Server::cmd_pass(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
@@ -213,8 +239,8 @@ int		Server::cmd_nick(Command to_execute, User *cmd_init)
 */
 int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 {
-	std::vector<User *>			messege_for;
-	std::vector<Channel *>		ch_messege_for;
+	std::vector<User *>			message_for;
+	std::vector<Channel *>		ch_message_for;
 	std::vector<std::string>	arguments = to_execute.get_args();
 	std::string					header;
 	std::string					to_send;
@@ -230,7 +256,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 		if (*(arguments[i].end() - 1) == ',')
 			arguments[i].erase(arguments[i].end() - 1);
 		if (find_user_by_nick(arguments[i]) && find_user_by_nick(arguments[i])->get_auth_status())
-			messege_for.push_back(find_user_by_nick(arguments[i]));
+			message_for.push_back(find_user_by_nick(arguments[i]));
 		i++;
 	}
 
@@ -241,10 +267,10 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 			arguments[i].erase(arguments[i].end() - 1);
 		if (find_channel_by_name(arguments[i]))
 			if ((find_channel_by_name(arguments[i])->is_in_channel(cmd_init)) == true)
-				ch_messege_for.push_back(find_channel_by_name(arguments[i]));
+				ch_message_for.push_back(find_channel_by_name(arguments[i]));
 		i++;
 	}
-	if (messege_for.size() == 0 && ch_messege_for.size() == 0)
+	if (message_for.size() == 0 && ch_message_for.size() == 0)
 		return ERR_NORECIPIENT;
 
 	// Убираем двоеточие у первого слова сообщения
@@ -261,31 +287,31 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
  	to_send += "\n";
 
 	// Рассылаем сообщения в каналы
-	for (size_t i = 0; i < ch_messege_for.size(); i++)
-		ch_messege_for[i]->send_messege_to_channel(to_send, this, notice, cmd_init);
+	for (size_t i = 0; i < ch_message_for.size(); i++)
+		ch_message_for[i]->send_message_to_channel(to_send, this, notice, cmd_init);
 	
 	// Рассылаем сообщения в сообщение
-	for (size_t j = 0; j < messege_for.size(); j++) {
-		std::cout << messege_for[j]->get_nick() << std::endl;
-		print_word_by_letters(messege_for[j]->get_nick());
+	for (size_t j = 0; j < message_for.size(); j++) {
+		std::cout << message_for[j]->get_nick() << std::endl;
+		print_word_by_letters(message_for[j]->get_nick());
 		if (notice == false)
-			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " PRIVMSG " + messege_for[j]->get_nick() + " :";
+			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " PRIVMSG " + message_for[j]->get_nick() + " :";
 		else
-			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " NOTICE " + messege_for[j]->get_nick() + " :";
-		send_string_to_user(messege_for[j], header);
-		send_string_to_user(messege_for[j], to_send);
+			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " NOTICE " + message_for[j]->get_nick() + " :";
+		send_string_to_user(message_for[j], header);
+		send_string_to_user(message_for[j], to_send);
 		header.clear();
 
 		// Обработка AWAY сообщения
-		if (messege_for[j]->get_away_on() == true && notice == false) {
-			away_msg = ":" + name + " 301 " + cmd_init->get_nick() + " " + messege_for[j]->get_nick() + " :" + messege_for[j]->get_away_massage();
+		if (message_for[j]->get_away_on() == true && notice == false) {
+			away_msg = ":" + name + " 301 " + cmd_init->get_nick() + " " + message_for[j]->get_nick() + " :" + message_for[j]->get_away_massage();
 			send_string_to_user(cmd_init, away_msg);
 			away_msg.clear();
 		}
 	}
 	to_send.clear();
-	messege_for.clear();
-	ch_messege_for.clear();
+	message_for.clear();
+	ch_message_for.clear();
 	arguments.clear();
 	return 0;
 }
@@ -413,7 +439,7 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	to_send += "\n";
 
 	kick_from->delete_user_from_channel(kick_this);
-	kick_from->send_messege_to_channel(to_send, this, false, cmd_init);
+	kick_from->send_message_to_channel(to_send, this, false, cmd_init);
 	return (0);
 }
 
@@ -451,32 +477,6 @@ void	Server::send_motd(Command to_execute, User *cmd_init)
 	send(cmd_init->get_fd(), ":IRC212 375 :- Message of the day - \n", 37, 0);
 	send(cmd_init->get_fd(), ":IRC212 372 :- Welcome to school 21 fsteffan's server!\n", 55, 0);
 	send(cmd_init->get_fd(), ":IRC212 376 :End of /MOTD command\n", 34, 0);
-}
-
-void	Server::execute_command(std::string cmd, User *cmd_init)
-{
-	Command		to_execute(cmd);
-	std::string	command = to_execute.get_cmd();
-	int			response = 0;
-
-	if (cmd.length() > 1)
-	{
-		to_execute.show_cmd();
-	
-		if (!(cmd_init->get_auth_status() == true) && command != "PASS" && command != "NICK"
-			&& command != "USER" && command != "QUIT")
-				send_response(to_execute, name, cmd_init, ERR_NOTREGISTERED);
-		else
-		{
-			if (commands[command] == 0)
-				send_response(to_execute, name, cmd_init, ERR_UNKNOWNCOMMAND);
-			else {
-				response = (this->*(commands.at(command)))(to_execute, cmd_init);
-				if (response != 0)
-					send_response(to_execute, name, cmd_init, response);
-			}
-		}
-	}
 }
 
 bool	Server::have_user(int new_user_fd)
