@@ -20,12 +20,12 @@
 #include <stdlib.h>
 #include "User.hpp"
 #include "Command.hpp"
-#include "Chanel.hpp"
+#include "Channel.hpp"
 #include "answers.h"
 
 class User;
 class Command;
-class Chanel;
+class Channel;
 class Server;
 
 typedef  int (Server::*MappedCMD) (Command, User *); // using???
@@ -40,7 +40,7 @@ private:
 	const id_t								timeout;
 	const std::string						password;
 	std::vector<User*>						users;
-	std::vector<Chanel*>					chanels;
+	std::vector<Channel*>					channels;
 	std::string								name;
 	
 	std::map<std::string, MappedCMD>			commands;
@@ -95,7 +95,7 @@ public:
 	/* Возвращает указатель на пользователя с ником user_nick*/
 	User									*find_user_by_nick(std::string user_nick);
 
-	Chanel									*find_chanel_by_name(std::string chanel_name);
+	Channel									*find_channel_by_name(std::string chanel_name);
 };
 
 void	print_word_by_letters(std::string word);

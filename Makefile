@@ -1,5 +1,5 @@
 NAME		=	ircserv
-SRCS		=	main.cpp Server.cpp User.cpp Command.cpp Chanel.cpp utils.cpp response.cpp
+SRCS		=	main.cpp Server.cpp User.cpp Command.cpp Channel.cpp utils.cpp response.cpp
 OBJS		=	$(SRCS:.cpp=.o)
 DEPS		=	$(SRCS:.cpp=.d)
 CC			=	clang++
@@ -12,7 +12,7 @@ CFLAGS		=	-std=c++98 -Wall -Wextra -Werror
 all			:	$(NAME)
 
 $(NAME)		:	$(OBJS)
-				$(CC) -o $(NAME) $(OBJS) -fsanitize=address
+				$(CC) -o $(NAME) $(OBJS)
 clean		:
 				$(RM) $(OBJS) $(DEPS)
 
