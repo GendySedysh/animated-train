@@ -30,4 +30,4 @@
 #define RPL_ENDOFMOTD			376
 #define RPL_NAMREPLY			353
 #define RPL_TOPIC				332
-#define	RPL_ENDRPL_NAMREPLY		366 //user #test :End of /NAMES list
+#define	RPL_ENDRPL_NAMREPLY		366

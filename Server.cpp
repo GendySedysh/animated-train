@@ -296,8 +296,6 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	
 	// Рассылаем сообщения в сообщение
 	for (size_t j = 0; j < message_for.size(); j++) {
-		std::cout << message_for[j]->get_nick() << std::endl;
-		print_word_by_letters(message_for[j]->get_nick());
 		if (notice == false)
 			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " PRIVMSG " + message_for[j]->get_nick() + " :";
 		else

@@ -16,8 +16,6 @@ int		ft_isdigit(int c)
 
 int		ft_isspec(int c)
 {
-	// char *spec_symbols = "-[]\\^{}"; // 45, 91, 92, 93, 94, 123, 125 
-
 	if ((c >= 91 && c <= 94) || c == 45 || c == 123 || c == 125 || c == 0)
 		return (1);
 	return (0);
@@ -47,8 +45,18 @@ void tokenize(std::string &str, const char delim, std::vector<std::string> &out)
 {
     size_t start;
     size_t end = 0;
+	size_t dots;
 	int c;
 
+	dots = str.find(" :");
+	if (dots != std::string::npos) {
+		for (size_t i = 0; i < dots; i++)
+		{
+			if (str[i] == ',')
+				str[i] = ' ';
+		}
+	}
+	
  	while ((c = str.find('\r')) != -1)
         str.erase(str.begin() + c);
 
