@@ -6,8 +6,14 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 	ss << response;
 	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
 
+
 	std::vector<std::string>	arguments = to_execute.get_args();
-	Channel *channel = find_channel_by_name(arguments[0]);
+	Channel *channel;
+
+	if (arguments.size() > 0)
+		channel = find_channel_by_name(arguments[0]);
+	else
+		channel = NULL;
 
 	switch (response)
 	{
