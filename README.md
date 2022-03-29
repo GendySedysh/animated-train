@@ -8,3 +8,11 @@ PRIVMSG MyBot :<Город на латинице>
 Например:
 
 PRIVMSG MyBot :Moscow
+
+Для работы бота нужно установить библиотеку curl:
+
+sudo apt install curl
+
+Для проверки установки пакета:
+
+curl -V
