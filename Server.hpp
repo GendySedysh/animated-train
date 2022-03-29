@@ -54,6 +54,7 @@ public:
 	void									bind_socket();
 	void									listen_socket();
 	void									grab_connection();
+	void									check_users();
 	int										process_messages();
 
 	// cmd

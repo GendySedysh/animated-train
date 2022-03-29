@@ -55,7 +55,7 @@ void	Channel::send_message_to_channel(std::string message, Server *server, bool 
 			header = ":" + sender->get_nick() + "!" + sender->get_username() + "@" + sender->get_address() + " PRIVMSG " + this->get_name() + " :";
 		else
 			header = ":" + sender->get_nick() + "!" + sender->get_username() + "@" + sender->get_address() + " NOTICE " + this->get_name() + " :";
-		if (is_in_channel(sender) == true && users[i] != sender) {
+		if (is_in_channel(sender) == true && users[i] != sender && users[i]->get_auth_status() == true) {
 			server->send_string_to_user(users[i], header);
 			server->send_string_to_user(users[i], message);
 		}

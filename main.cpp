@@ -44,5 +44,7 @@ int main(int argc, char **argv)
 		server.grab_connection();
 
 		server.process_messages();
+
+		server.check_users();
 	}
 }

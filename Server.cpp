@@ -122,6 +122,18 @@ int		Server::process_messages()
 	return (0);
 }
 
+void	Server::check_users(){
+	char *buf;
+	size_t retval;
+
+	for (size_t i = 0; i < users.size(); i++) {
+		retval = recv(users[i]->get_fd(), &buf, 1, MSG_PEEK | MSG_DONTWAIT);
+		if (retval == 0)
+			users[i]->set_auth_status(false);
+		retval = 0;
+	}
+}
+
 void	Server::cmd_handler(std::string input, User *cmd_init)
 {
 	std::vector<std::string>	commands;
@@ -168,6 +180,8 @@ int		Server::cmd_pass(Command to_execute, User *cmd_init)
 
 	if (arguments[0][0] == ':')
 		arguments[0].erase(0);
+	else
+		return 461;
 
 	if (password.compare(arguments[0]))
 		cmd_init->set_pass_status(true);
@@ -248,6 +262,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	bool						notice = false;
 	int							i = 0;
 
+
 	if (to_execute.get_cmd().compare("NOTICE") == 0)
 		notice = true;
 
@@ -278,7 +293,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 		return ERR_NORECIPIENT;
 
 	// Убираем двоеточие у первого слова сообщения
-	if (arguments[i][0] == ':')
+	if (arguments.size() > 1 && arguments[i][0] == ':')
 		arguments[i] = arguments[i].erase(arguments[i].find(':'), 1);
 	else
 		return ERR_NOTEXTTOSEND;
