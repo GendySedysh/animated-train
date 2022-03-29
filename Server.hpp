@@ -22,11 +22,13 @@
 #include "Command.hpp"
 #include "Channel.hpp"
 #include "answers.h"
+#include "Bot.hpp"
 
 class User;
 class Command;
 class Channel;
 class Server;
+class Bot;
 
 typedef  int (Server::*MappedCMD) (Command, User *); // using???
 
@@ -42,6 +44,7 @@ private:
 	std::vector<User*>						users;
 	std::vector<Channel*>					channels;
 	std::string								name;
+	Bot										*weather_bot;
 	
 	std::map<std::string, MappedCMD>			commands;
 public:

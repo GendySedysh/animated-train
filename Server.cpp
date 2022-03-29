@@ -15,6 +15,10 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["QUIT"] = &Server::cmd_quit;
 	commands["ONLINE"] = &Server::cmd_online;
 	commands["ISON"] = &Server::cmd_ison;
+
+	users.push_back(new User(-1));
+	users[0]->set_nick("MyBot");
+	users[0]->set_auth_status(true);
 }
 
 Server::~Server()
@@ -311,6 +315,10 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	
 	// Рассылаем сообщения в сообщение
 	for (size_t j = 0; j < message_for.size(); j++) {
+		if (message_for[j]->get_nick() == "MyBot"){
+			weather_bot->get_command(to_execute, cmd_init, this);
+			continue;
+		}
 		if (notice == false)
 			header += ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() + "@" + cmd_init->get_address() + " PRIVMSG " + message_for[j]->get_nick() + " :";
 		else
