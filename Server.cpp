@@ -16,6 +16,7 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["QUIT"] = &Server::cmd_quit;
 	commands["ONLINE"] = &Server::cmd_online;
 	commands["ISON"] = &Server::cmd_ison;
+	commands["TOPIC"] = &Server::cmd_topic;
 
 	users.push_back(new User(-1));
 	users[0]->set_nick("MyBot");
@@ -522,6 +523,45 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 	for (size_t i = 0; i < kick_from.size(); i++)
 		kick_from[i]->delete_user_from_channel(cmd_init);
 
+	return 0;
+}
+
+int		Server::cmd_topic(Command to_execute, User *cmd_init) {
+	std::vector<std::string>	arguments = to_execute.get_args();
+
+	if (arguments.size() < 1)
+		return ERR_NEEDMOREPARAMS;
+	
+	Channel		*channel = find_channel_by_name(arguments[0]);
+	if (channel == NULL || !channel->is_in_channel(cmd_init))
+		return ERR_NOSUCHCHANNEL; // TODO: reply
+	
+	if (arguments.size() < 2) {
+		send_response(to_execute, name, cmd_init, RPL_TOPIC); // FIXME: логика RPL_TOPIC в send_response
+	} else {
+
+		std::string		new_topic = "";
+		// Убираем двоеточие у первого слова топика
+		if (arguments[2].at(0) == ':')
+			arguments[2] = arguments[2].erase(arguments[2].find(':'), 1);
+
+		// Формируем топик
+		for (size_t i = 2; i < to_execute.get_num_of_args(); i++) {
+			new_topic += arguments[i];
+		}
+
+		int		err_code;
+		err_code = channel->set_topic(cmd_init, new_topic);
+
+		switch (err_code)
+		{
+		case ERR_CHANOPRIVSNEEDED:
+			send_response(to_execute, name, cmd_init, ERR_CHANOPRIVSNEEDED);
+			break ;
+		default:
+			send_response(to_execute, name, cmd_init, RPL_TOPIC);
+		};
+	}
 	return 0;
 }
 

@@ -89,7 +89,7 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += ":You have not registered\n";
 		break;
 	case ERR_NOSUCHCHANNEL:
-		msg += channel->get_name() + " :No such channel\n";
+		msg += arguments[0] + " :No such channel\n";
 		break;
 	case ERR_NOTONCHANNEL:
 		msg += channel->get_name() + " :You're not on that channel\n";

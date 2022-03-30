@@ -83,6 +83,7 @@ public:
 	int										cmd_quit(Command to_execute, User *cmd_init);
 	int										cmd_online(Command to_execute, User *cmd_init);
 	int										cmd_ison(Command to_execute, User *cmd_init);
+	int										cmd_topic(Command to_execute, User *cmd_init);
 	void									send_motd(Command to_execute, User *cmd_init);
 	void									send_response(Command to_execute, const std::string from, User *cmd_init, int responce);
 
