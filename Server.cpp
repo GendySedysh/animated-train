@@ -436,12 +436,12 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	if (arguments.size() < 1)
 		return ERR_NEEDMOREPARAMS;
 			
-	Channel	*chanel = find_channel_by_name(to_execute.get_args()[0]);
+	Channel	*channel = find_channel_by_name(to_execute.get_args()[0]);
 	
-	if (chanel == NULL)	// Создаём канал
+	if (channel == NULL)	// Создаём канал
 		channels.push_back(new Channel(to_execute.get_args()[0], cmd_init));
 	else				// Добавляем в канал если канал уже существует
-		chanel->add_user_to_channel(cmd_init);
+		channel->add_user_to_channel(cmd_init);
 	send_response(to_execute, name, cmd_init, RPL_TOPIC);
 	send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
 	send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
