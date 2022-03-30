@@ -26,7 +26,6 @@ void	Bot::get_command(Command to_execute, User *cmd_init, Server *server)
 
 	for (i = 0; i < arguments.size(); i++) {
 		if (arguments[i][0] == ':') {
-			std::cout << i << "___" << arguments[i] << std::endl;
 			arguments[i].erase(0, 1);
 			break;
 		}
@@ -49,6 +48,7 @@ void	Bot::get_command(Command to_execute, User *cmd_init, Server *server)
 			printf("REQUEST FAILED\n");
 		curl_easy_cleanup(curl);
 	}
+
 	curl_global_cleanup();
 	weather_data(readBuffer, cmd_init, server);
 }

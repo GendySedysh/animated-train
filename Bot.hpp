@@ -14,7 +14,6 @@ class Bot
 public:
 	void	get_command(Command to_execute, User *cmd_init, Server *server);
 	void	weather_data(std::string text, User *cmd_init, Server *server);
-	// static std::string get_response(std::string ip, bool geo);
 };
 
 #endif

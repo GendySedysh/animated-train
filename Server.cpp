@@ -132,8 +132,13 @@ void	Server::check_users(){
 
 	for (size_t i = 0; i < users.size(); i++) {
 		retval = recv(users[i]->get_fd(), &buf, 1, MSG_PEEK | MSG_DONTWAIT);
-		if (retval == 0)
+		if (retval == 0) {
 			users[i]->set_auth_status(false);
+			users[i]->set_nick_status(false);
+			users[i]->set_pass_status(false);
+			users[i]->set_username_status(false);
+			close(users[i]->get_fd());
+		}
 		retval = 0;
 	}
 }
