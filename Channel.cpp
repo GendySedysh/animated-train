@@ -62,3 +62,38 @@ void	Channel::send_message_to_channel(std::string message, Server *server, bool 
 		header.clear();
 	}
 }
+
+void	Channel::set_flag(unsigned char flag)
+{
+	this->flags |= flag;
+}
+
+void	Channel::unset_flag(unsigned char flag)
+{
+	this->flags &= ~flag;
+}
+
+
+bool	Channel::is_private() const {
+	return static_cast<bool>(this->flags & CH_PRIVATE);
+}
+
+bool	Channel::is_secret() const {
+	return static_cast<bool>(this->flags & CH_SECRET);
+}
+
+bool	Channel::is_invite_only() const {
+	return static_cast<bool>(this->flags & CH_INVITEONLY);
+}
+
+bool	Channel::is_topic_set_by_operator() const {
+	return static_cast<bool>(this->flags & CH_TOPICSETOP);
+}
+
+bool	Channel::is_reachable_from_outside() const {
+	return !(static_cast<bool>(this->flags & CH_NOMSGFROMOUT));
+}
+
+bool	Channel::is_moderated() const {
+	return static_cast<bool>(this->flags & CH_MODERATED);
+}
