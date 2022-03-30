@@ -16,6 +16,7 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["QUIT"] = &Server::cmd_quit;
 	commands["ONLINE"] = &Server::cmd_online;
 	commands["ISON"] = &Server::cmd_ison;
+	commands["TOPIC"] = &Server::cmd_topic;
 
 	users.push_back(new User(-1));
 	users[0]->set_nick("MyBot");
@@ -435,16 +436,48 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 
 	if (arguments.size() < 1)
 		return ERR_NEEDMOREPARAMS;
-			
-	Channel	*chanel = find_channel_by_name(to_execute.get_args()[0]);
+
+	std::string	channel_name = arguments[0];
+
+	std::string	channel_key;
+	if (arguments.size() > 1) {		// Пробуем найти key для канала
+		channel_key = arguments[1];
+	} else {						// Если key нет, то он пустая строка
+		channel_key = "";
+	}
+
+	Channel	*channel = find_channel_by_name(channel_name);
+	int		error_code;
+
+	if (channel == NULL) {	// Создаём канал
+		channel = new Channel(channel_name, cmd_init, channel_key);
+		channels.push_back(channel);
+	} else {				// Добавляем в канал если канал уже существует
+		error_code = channel->add_user_to_channel(cmd_init, channel_key);
+	}
 	
-	if (chanel == NULL)	// Создаём канал
-		channels.push_back(new Channel(to_execute.get_args()[0], cmd_init));
-	else				// Добавляем в канал если канал уже существует
-		chanel->add_user_to_channel(cmd_init);
-	send_response(to_execute, name, cmd_init, RPL_TOPIC);
-	send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
-	send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
+	switch (error_code) {
+	case ERR_BADCHANNELKEY:
+		std::cout << cmd_init->get_nick() << " tried invalid key in " << channel_name << ", key = " << channel_key << std::endl;
+		// send_response(to_execute, name, cmd_init, ERR_BADCHANNELKEY); // Тут должна быть отправка ошибки
+		// break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+	case ERR_INVITEONLYCHAN:
+		std::cout << cmd_init->get_nick() << " tried joining " << channel_name << ", which is invite only" << std::endl;
+		// send_response(to_execute, name, cmd_init, ERR_INVITEONLYCHAN); // Тут должна быть отправка ошибки
+		break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+	case ERR_USERONCHANNEL: // Пользователь уже в канале
+		break ;
+	default:
+		if (channel->get_topic().size() > 0) {
+			send_response(to_execute, name, cmd_init, RPL_TOPIC);
+		} else {
+			send_response(to_execute, name, cmd_init, RPL_NOTOPIC);
+		}
+		send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
+		send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
+	}
+	
+	
 	return (0);
 }
 
@@ -495,6 +528,47 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 	for (size_t i = 0; i < kick_from.size(); i++)
 		kick_from[i]->delete_user_from_channel(cmd_init);
 
+	return 0;
+}
+
+int		Server::cmd_topic(Command to_execute, User *cmd_init) {
+	std::vector<std::string>	arguments = to_execute.get_args();
+
+	if (arguments.size() < 1)
+		return ERR_NEEDMOREPARAMS;
+	
+	Channel		*channel = find_channel_by_name(arguments[0]);
+	if (channel == NULL) {
+		return ERR_NOSUCHCHANNEL;
+	} else if (!channel->is_in_channel(cmd_init)) {
+		return ERR_NOTONCHANNEL;
+	}
+	
+	if (arguments.size() < 2) {
+		send_response(to_execute, name, cmd_init, RPL_TOPIC); // FIXME: логика RPL_TOPIC в send_response
+	} else {
+
+		std::string		new_topic = "";
+		// Убираем двоеточие у первого слова топика
+		if (arguments[1].at(0) == ':')
+			arguments[1] = arguments[1].erase(arguments[1].find(':'), 1);
+
+		// Формируем топик
+		for (size_t i = 1; i < to_execute.get_num_of_args(); i++) {
+			std::string	space = (i < to_execute.get_num_of_args() - 1) ? " " : "";
+			new_topic += arguments[i] + space;
+		}
+
+		int		err_code;
+		err_code = channel->set_topic(cmd_init, new_topic);
+
+		if (err_code == ERR_CHANOPRIVSNEEDED) { // TODO: test it when user is not operator
+			send_response(to_execute, name, cmd_init, ERR_CHANOPRIVSNEEDED);
+		} else {
+			std::string msg = "TOPIC " + channel->get_name() + " :" + channel->get_topic() + "\n";
+			channel->send_message_to_channel(msg, this, false, cmd_init);
+		}
+	}
 	return 0;
 }
 

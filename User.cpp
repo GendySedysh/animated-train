@@ -34,3 +34,8 @@ bool			User::autorization_check() {
 		return true;
 	return false;
 }
+
+void			User::send_message(const std::string &msg) const {
+	if (msg.size() > 0)
+		send(user_fd, msg.c_str(), msg.size(), 0);
+}
