@@ -450,7 +450,8 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	int		error_code;
 
 	if (channel == NULL) {	// Создаём канал
-		channels.push_back(new Channel(channel_name, cmd_init, channel_key));
+		channel = new Channel(channel_name, cmd_init, channel_key);
+		channels.push_back(channel);
 	} else {				// Добавляем в канал если канал уже существует
 		error_code = channel->add_user_to_channel(cmd_init, channel_key);
 	}
@@ -467,7 +468,11 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	case ERR_USERONCHANNEL: // Пользователь уже в канале
 		break ;
 	default:
-		send_response(to_execute, name, cmd_init, RPL_TOPIC);
+		if (channel->get_topic().size() > 0) {
+			send_response(to_execute, name, cmd_init, RPL_TOPIC);
+		} else {
+			send_response(to_execute, name, cmd_init, RPL_NOTOPIC);
+		}
 		send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
 		send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
 	}
@@ -533,8 +538,11 @@ int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 		return ERR_NEEDMOREPARAMS;
 	
 	Channel		*channel = find_channel_by_name(arguments[0]);
-	if (channel == NULL || !channel->is_in_channel(cmd_init))
-		return ERR_NOSUCHCHANNEL; // TODO: reply
+	if (channel == NULL) {
+		return ERR_NOSUCHCHANNEL;
+	} else if (!channel->is_in_channel(cmd_init)) {
+		return ERR_NOTONCHANNEL;
+	}
 	
 	if (arguments.size() < 2) {
 		send_response(to_execute, name, cmd_init, RPL_TOPIC); // FIXME: логика RPL_TOPIC в send_response
@@ -542,25 +550,24 @@ int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 
 		std::string		new_topic = "";
 		// Убираем двоеточие у первого слова топика
-		if (arguments[2].at(0) == ':')
-			arguments[2] = arguments[2].erase(arguments[2].find(':'), 1);
+		if (arguments[1].at(0) == ':')
+			arguments[1] = arguments[1].erase(arguments[1].find(':'), 1);
 
 		// Формируем топик
-		for (size_t i = 2; i < to_execute.get_num_of_args(); i++) {
-			new_topic += arguments[i];
+		for (size_t i = 1; i < to_execute.get_num_of_args(); i++) {
+			std::string	space = (i < to_execute.get_num_of_args() - 1) ? " " : "";
+			new_topic += arguments[i] + space;
 		}
 
 		int		err_code;
 		err_code = channel->set_topic(cmd_init, new_topic);
 
-		switch (err_code)
-		{
-		case ERR_CHANOPRIVSNEEDED:
+		if (err_code == ERR_CHANOPRIVSNEEDED) { // TODO: test it when user is not operator
 			send_response(to_execute, name, cmd_init, ERR_CHANOPRIVSNEEDED);
-			break ;
-		default:
-			send_response(to_execute, name, cmd_init, RPL_TOPIC);
-		};
+		} else {
+			std::string msg = "TOPIC " + channel->get_name() + " :" + channel->get_topic() + "\n";
+			channel->send_message_to_channel(msg, this, false, cmd_init);
+		}
 	}
 	return 0;
 }

@@ -41,8 +41,11 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 	case RPL_ENDOFMOTD:
 		msg += ":End of /MOTD command\n";
 		break;
-	case RPL_TOPIC:
+	case RPL_NOTOPIC:
 		msg += channel->get_name() + " :No topic set\n";
+		break;
+	case RPL_TOPIC:
+		msg += channel->get_name() + " :" + channel->get_topic() + "\n";
 		break;
 	case RPL_NAMREPLY:
 		if (channel != NULL){

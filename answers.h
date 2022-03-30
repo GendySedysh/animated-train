@@ -33,5 +33,6 @@
 #define RPL_MOTD				372
 #define RPL_ENDOFMOTD			376
 #define RPL_NAMREPLY			353
+#define RPL_NOTOPIC				331
 #define RPL_TOPIC				332
 #define	RPL_ENDRPL_NAMREPLY		366

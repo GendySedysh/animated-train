@@ -2,6 +2,7 @@
 # define USER_HPP
 
 #include "Server.hpp"
+#include <sys/socket.h>
 
 class User
 {
@@ -43,6 +44,8 @@ public:
 	std::string		get_away_message();
 	std::string		get_address();
 	bool			get_away_on();
+	
+	void			send_message(const std::string &msg) const;
 };
 
 
