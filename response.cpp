@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-void	Server::send_response(const std::string from, User *cmd_init, int response,
+int	Server::send_response(const std::string from, User *cmd_init, int response,
 								std::string arg1, std::string arg2, std::string arg3, std::string arg4)
 {
 	(void) arg2;
@@ -96,4 +96,5 @@ void	Server::send_response(const std::string from, User *cmd_init, int response,
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);
 	msg.clear();
+	return (0);
 }

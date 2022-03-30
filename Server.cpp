@@ -167,7 +167,7 @@ void	Server::execute_command(std::string cmd, User *cmd_init)
 	
 		if (!(cmd_init->get_auth_status() == true) && command != "PASS" && command != "NICK"
 			&& command != "USER" && command != "QUIT")
-				send_response( name, cmd_init, ERR_NOTREGISTERED, cmd_init->get_nick(), "0", "0", "0");
+				send_response(name, cmd_init, ERR_NOTREGISTERED, cmd_init->get_nick(), "0", "0", "0");
 		else
 		{
 			if (commands[command] == 0)
@@ -182,17 +182,13 @@ int		Server::cmd_pass(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (to_execute.get_num_of_args() != 1) {
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	if (to_execute.get_num_of_args() != 1)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
 	if (arguments[0][0] == ':')
 		arguments[0].erase(0);
-	else {
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	else 
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
 	if (password.compare(arguments[0]))
 		cmd_init->set_pass_status(true);
@@ -205,14 +201,11 @@ int		Server::cmd_user(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (to_execute.get_num_of_args() != 4) {
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
-	if (cmd_init->get_auth_status() == true) {
-		send_response(name, cmd_init, ERR_ALREADYREGISTRED, "0", "0", "0", "0");
-		return 0;
-	}
+	if (to_execute.get_num_of_args() != 4)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
+
+	if (cmd_init->get_auth_status() == true)
+		return send_response(name, cmd_init, ERR_ALREADYREGISTRED, "0", "0", "0", "0");
 
 	cmd_init->set_username(arguments[0]);
 	cmd_init->set_address(arguments[2]);
@@ -241,21 +234,15 @@ int		Server::cmd_nick(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (arguments.size() == 0) {
-		send_response(name, cmd_init, ERR_NONICKNAMEGIVEN, "0", "0", "0", "0");
-		return 0;
-	}
+	if (arguments.size() == 0)
+		return send_response(name, cmd_init, ERR_NONICKNAMEGIVEN, "0", "0", "0", "0");
 
-	if (arguments[0].length() >= 9 || nick_is_valid(arguments[0]) == false) {
-		send_response(name, cmd_init, ERR_ERRONEUSNICKNAME, arguments[0], "0", "0", "0");
-		return 0;
-	}
+	if (arguments[0].length() >= 9 || nick_is_valid(arguments[0]) == false)
+		return send_response(name, cmd_init, ERR_ERRONEUSNICKNAME, arguments[0], "0", "0", "0");
 
 	if (find_user_by_nick(arguments[0]) != NULL)
-		if (find_user_by_nick(arguments[0])->get_auth_status() == true) {
-			send_response(name, cmd_init, ERR_NICKNAMEINUSE, arguments[0], "0", "0", "0");
-			return 0;
-		}
+		if (find_user_by_nick(arguments[0])->get_auth_status() == true)
+			return send_response(name, cmd_init, ERR_NICKNAMEINUSE, arguments[0], "0", "0", "0");
 
 	cmd_init->set_nick(arguments[0]);
 	cmd_init->set_nick_status(true);
@@ -310,18 +297,14 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 				ch_message_for.push_back(channel_ptr);
 		i++;
 	}
-	if (message_for.size() == 0 && ch_message_for.size() == 0) {
-		send_response(name, cmd_init, ERR_NORECIPIENT, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	if (message_for.size() == 0 && ch_message_for.size() == 0)
+		return send_response(name, cmd_init, ERR_NORECIPIENT, to_execute.get_cmd(), "0", "0", "0");
 
 	// Убираем двоеточие у первого слова сообщения
 	if (arguments.size() > 1 && arguments[i][0] == ':')
 		arguments[i] = arguments[i].erase(arguments[i].find(':'), 1);
-	else {
-		send_response(name, cmd_init, ERR_NOTEXTTOSEND, "0", "0", "0", "0");
-		return 0;
-	}
+	else
+		return send_response(name, cmd_init, ERR_NOTEXTTOSEND, "0", "0", "0", "0");
 
 	// Формируем сообщение
 	while (i < to_execute.get_num_of_args()){
@@ -410,10 +393,8 @@ int		Server::cmd_quit(Command to_execute, User *cmd_init)
 
 int		Server::cmd_ping(Command to_execute, User *cmd_init)
 {
-	if (to_execute.get_num_of_args() == 0) {
-		send_response(name, cmd_init, ERR_NOORIGIN, "0", "0", "0", "0");
-		return 0;
-	}
+	if (to_execute.get_num_of_args() == 0)
+		return send_response(name, cmd_init, ERR_NOORIGIN, "0", "0", "0", "0");
 
 	send_string_to_user(cmd_init, ":" + this->name + " PONG :" + to_execute.get_args()[0] + "\n");
 	return 0;
@@ -461,10 +442,8 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (arguments.size() < 1) {
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	if (arguments.size() < 1)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
 	std::vector<std::string>	channels_name;
 	std::vector<std::string>	keys;
@@ -535,25 +514,17 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	User	*kick_this = find_user_by_nick(arguments[1]);
 	std::string to_send;
 
-	if (arguments.size() < 2){
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	if (arguments.size() < 2)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
-	if (kick_from == NULL) {
-		send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[0], "0", "0", "0");
-		return 0;
-	}
+	if (kick_from == NULL)
+		return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[0], "0", "0", "0");
 
-	if (kick_from->is_in_channel(kick_this) == false) {
-		send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[0], "0", "0", "0");
-		return 0;
-	}
+	if (kick_from->is_in_channel(kick_this) == false)
+		return send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[0], "0", "0", "0");
 
-	if (kick_from->is_operator(cmd_init) == false) {
-		send_response(name, cmd_init, ERR_CHANOPRIVSNEEDED, arguments[0], "0", "0", "0");
-		return 0;
-	}
+	if (kick_from->is_operator(cmd_init) == false)
+		return send_response(name, cmd_init, ERR_CHANOPRIVSNEEDED, arguments[0], "0", "0", "0");
 
 	to_send += "KICK " + kick_from->get_name() + " " + kick_this->get_nick();
 	for (size_t i = 2; i < arguments.size(); i++)
@@ -575,26 +546,22 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 		if (arguments[i][0] == ',')
 			arguments[i].erase(1);
 
-		if (arguments.size() < 1) {
-			send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-			return 0;
-		}
+		if (arguments.size() < 1)
+			return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
-		if (find_channel_by_name(arguments[i]) == NULL) {
-			send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[i], "0", "0", "0");
-			return 0;
-		}
+		if (find_channel_by_name(arguments[i]) == NULL)
+			return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[i], "0", "0", "0");
 
-		if (find_channel_by_name(arguments[i])->is_in_channel(cmd_init) == false) {
-			send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[i], "0", "0", "0");
-			return 0;
-		}
+		if (find_channel_by_name(arguments[i])->is_in_channel(cmd_init) == false)
+			return send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[i], "0", "0", "0");
 
 		kick_from.push_back(find_channel_by_name(arguments[i]));
 	}
 	
-	for (size_t i = 0; i < kick_from.size(); i++)
+	for (size_t i = 0; i < kick_from.size(); i++) {
+		kick_from[i]->send_message_to_channel(cmd_init->get_nick() + ": leaved the channel\n", this, false, cmd_init);
 		kick_from[i]->delete_user_from_channel(cmd_init);
+	}
 
 	return 0;
 }
@@ -602,20 +569,15 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (arguments.size() < 1) {
-		send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
-		return 0;
-	}
+	if (arguments.size() < 1)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 	
 	Channel		*channel = find_channel_by_name(arguments[0]);
-	if (channel == NULL) {
-		send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[0], "0", "0", "0");
-		return 0;
-	}
-	else if (!channel->is_in_channel(cmd_init)) {
-		send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[0], "0", "0", "0");
-		return 0;
-	}
+	if (channel == NULL)
+		return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[0], "0", "0", "0");
+
+	else if (!channel->is_in_channel(cmd_init))
+		return send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[0], "0", "0", "0");
 	
 	if (arguments.size() < 2) {
 		send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0"); // FIXME: логика RPL_TOPIC в send_response
