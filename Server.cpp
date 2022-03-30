@@ -435,16 +435,43 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 
 	if (arguments.size() < 1)
 		return ERR_NEEDMOREPARAMS;
-			
-	Channel	*channel = find_channel_by_name(to_execute.get_args()[0]);
+
+	std::string	channel_name = arguments[0];
+
+	std::string	channel_key;
+	if (arguments.size() > 1) {		// Пробуем найти key для канала
+		channel_key = arguments[1];
+	} else {						// Если key нет, то он пустая строка
+		channel_key = "";
+	}
+
+	Channel	*channel = find_channel_by_name(channel_name);
+	int		error_code;
+
+	if (channel == NULL) {	// Создаём канал
+		channels.push_back(new Channel(channel_name, cmd_init, channel_key));
+	} else {				// Добавляем в канал если канал уже существует
+		error_code = channel->add_user_to_channel(cmd_init, channel_key);
+	}
 	
-	if (channel == NULL)	// Создаём канал
-		channels.push_back(new Channel(to_execute.get_args()[0], cmd_init));
-	else				// Добавляем в канал если канал уже существует
-		channel->add_user_to_channel(cmd_init);
-	send_response(to_execute, name, cmd_init, RPL_TOPIC);
-	send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
-	send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
+	switch (error_code) {
+	case ERR_BADCHANNELKEY:
+		std::cout << cmd_init->get_nick() << " tried invalid key in " << channel_name << ", key = " << channel_key << std::endl;
+		// send_response(to_execute, name, cmd_init, ERR_BADCHANNELKEY); // Тут должна быть отправка ошибки
+		// break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+	case ERR_INVITEONLYCHAN:
+		std::cout << cmd_init->get_nick() << " tried joining " << channel_name << ", which is invite only" << std::endl;
+		// send_response(to_execute, name, cmd_init, ERR_INVITEONLYCHAN); // Тут должна быть отправка ошибки
+		break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+	case ERR_USERONCHANNEL: // Пользователь уже в канале
+		break ;
+	default:
+		send_response(to_execute, name, cmd_init, RPL_TOPIC);
+		send_response(to_execute, name, cmd_init, RPL_NAMREPLY);
+		send_response(to_execute, name, cmd_init, RPL_ENDRPL_NAMREPLY);
+	}
+	
+	
 	return (0);
 }
 
