@@ -434,8 +434,25 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (arguments.size() < 1)
+	if (arguments.size() != 2)
 		return ERR_NEEDMOREPARAMS;
+
+	std::vector<std::string>	channels_name;
+	std::vector<std::string>	keys;
+	// bool						is_key = false;
+
+	// в argument[0] должны приходить только имена каналов
+	// в argument[1] должны приходить только ключи
+	tokenize(arguments[0], ',', channels_name);
+	tokenize(arguments[1], ',', keys);
+	// Проверка является ли то что пришло в новые вектора нужными данными
+	std::cout << "Каналы: ";
+	for (size_t i = 0; i < channels_name.size(); i++)
+		std::cout << channels_name[i] << " ";
+	std::cout << "\nKлючи: ";
+	for (size_t i = 0; i < keys.size(); i++)
+		std::cout << keys[i] << " ";
+	std::cout << std::endl;
 
 	std::string	channel_name = arguments[0];
 
@@ -447,7 +464,7 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	}
 
 	Channel	*channel = find_channel_by_name(channel_name);
-	int		error_code;
+	int		error_code = 0;
 
 	if (channel == NULL) {	// Создаём канал
 		channel = new Channel(channel_name, cmd_init, channel_key);
@@ -554,7 +571,7 @@ int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 			arguments[1] = arguments[1].erase(arguments[1].find(':'), 1);
 
 		// Формируем топик
-		for (size_t i = 1; i < to_execute.get_num_of_args(); i++) {
+		for (int i = 1; i < to_execute.get_num_of_args(); i++) {
 			std::string	space = (i < to_execute.get_num_of_args() - 1) ? " " : "";
 			new_topic += arguments[i] + space;
 		}
