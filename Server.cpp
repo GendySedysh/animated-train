@@ -6,6 +6,7 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["USER"] = &Server::cmd_user;
 	commands["NICK"] = &Server::cmd_nick;
 	commands["PRIVMSG"] = &Server::cmd_privmsg;
+	commands["NOTICE"] = &Server::cmd_privmsg;
 	commands["AWAY"] = &Server::cmd_away;
 	commands["PING"] = &Server::cmd_ping;
 	commands["PONG"] = &Server::cmd_pong;
