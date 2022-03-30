@@ -434,7 +434,7 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
-	if (arguments.size() != 2)
+	if (arguments.size() < 1)
 		return ERR_NEEDMOREPARAMS;
 
 	std::vector<std::string>	channels_name;
@@ -444,7 +444,8 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	// в argument[0] должны приходить только имена каналов
 	// в argument[1] должны приходить только ключи
 	tokenize(arguments[0], ',', channels_name);
-	tokenize(arguments[1], ',', keys);
+	if (arguments.size() >= 2)
+		tokenize(arguments[1], ',', keys);
 	// Проверка является ли то что пришло в новые вектора нужными данными
 	std::cout << "Каналы: ";
 	for (size_t i = 0; i < channels_name.size(); i++)
