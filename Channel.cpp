@@ -5,6 +5,7 @@ Channel::Channel(std::string &name, User *creator, std::string &key)
 	this->name = name;
 	this->key = key;
 	this->topic = "";
+	this->flags = 0b00000000;
 	this->operators.push_back(creator);
 	this->users.push_back(creator);
 }

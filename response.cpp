@@ -1,30 +1,21 @@
 #include "Server.hpp"
 
-void	Server::send_response(Command to_execute, const std::string from, User *cmd_init, int response)
+void	Server::send_response(const std::string from, User *cmd_init, int response,
+								std::string arg1, std::string arg2, std::string arg3, std::string arg4)
 {
+	(void) arg2;
+	(void) arg3;
+	(void) arg4;
+
 	std::stringstream	ss;
 	ss << response;
 	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
 
-
-	std::vector<std::string>	arguments = to_execute.get_args();
-	Channel *channel;
-
-	if (arguments.size() > 0)
-		channel = find_channel_by_name(arguments[0]);
-	else
-		channel = NULL;
-
+	Channel	*channel = NULL;
 	switch (response)
 	{
 	case RPL_ISON:
-		msg += ":";
-		for (size_t i = 0; i < arguments.size(); i++)
-		{
-			if (find_user_by_nick(arguments[i]) != NULL)
-				msg += arguments[i] + " ";
-		}
-		msg += "\n";
+		msg += ":" + arg1 + "\n"; //arg1 = строка в которую записаны ники 
 		break;
 	case RPL_UNAWAY:
 		msg += ":You are no longer marked as being away\n";
@@ -42,12 +33,14 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += ":End of /MOTD command\n";
 		break;
 	case RPL_NOTOPIC:
-		msg += channel->get_name() + " :No topic set\n";
+		msg += arg1 + " :No topic set\n";	//arg1 = Имя канала
 		break;
 	case RPL_TOPIC:
-		msg += channel->get_name() + " :" + channel->get_topic() + "\n";
+		channel = find_channel_by_name(arg1);		//arg1 = Имя канала
+		msg += arg1 + " :" + channel->get_topic() + "\n";
 		break;
 	case RPL_NAMREPLY:
+		channel = find_channel_by_name(arg1);	//arg1 = Имя канала
 		if (channel != NULL){
 			std::vector<std::string> user_names = channel->get_user_name_vec();
 
@@ -58,26 +51,26 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		}
 		msg += "\n";
 		break;
-	case RPL_ENDRPL_NAMREPLY:
-		msg += channel->get_name() + " :End of /NAMES list\n";
+	case RPL_ENDRPL_NAMREPLY:		//arg1 = Имя канала
+		msg += arg1 + " :End of /NAMES list\n";
 		break;
 	case ERR_NONICKNAMEGIVEN:
 		msg += ":No nickname given\n";
 		break;
 	case ERR_NICKNAMEINUSE:
-		msg += arguments[0] +" :Nickname is already in use\n";
+		msg += arg1 +" :Nickname is already in use\n"; //arg1 = вводимый НИК
 		break;
 	case ERR_ERRONEUSNICKNAME:
-		msg += arguments[0] + " :Erroneus nickname\n";
+		msg += arg1 + " :Erroneus nickname\n"; //arg1 = вводимый НИК
 		break;
 	case ERR_NEEDMOREPARAMS:
-		msg += to_execute.get_cmd() + " :Not enough parameters\n";
+		msg += arg1 + " :Not enough parameters\n"; //arg1 = команда на ввод
 		break;
 	case ERR_ALREADYREGISTRED:
 		msg += ":You may not reregister\n";
 		break;
 	case ERR_NORECIPIENT:
-		msg += ":No recipient given ("+ to_execute.get_cmd() + ")\n";
+		msg += ":No recipient given ("+ arg1 + ")\n"; //arg1 = команда на ввод
 		break;
 	case ERR_NOORIGIN:
 		msg += ":No origin specified\n";
@@ -86,19 +79,19 @@ void	Server::send_response(Command to_execute, const std::string from, User *cmd
 		msg += ":No text to send\n";
 		break;
 	case ERR_UNKNOWNCOMMAND:
-		msg += to_execute.get_cmd() + " :Unknown command\n";
+		msg += arg1 + " :Unknown command\n"; //arg1 = команда на ввод
 		break;
 	case ERR_NOTREGISTERED:
 		msg += ":You have not registered\n";
 		break;
 	case ERR_NOSUCHCHANNEL:
-		msg += arguments[0] + " :No such channel\n";
+		msg += arg1 + " :No such channel\n"; //arg1 = Имя канала
 		break;
 	case ERR_NOTONCHANNEL:
-		msg += channel->get_name() + " :You're not on that channel\n";
+		msg += arg1 + " :You're not on that channel\n"; //arg1 = Имя канала
 		break;
 	case ERR_CHANOPRIVSNEEDED:
-		msg += channel->get_name() + " :You're not channel operator\n";
+		msg += arg1 + " :You're not channel operator\n"; //arg1 = Имя канала
 		break;
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);

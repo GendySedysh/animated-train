@@ -85,7 +85,8 @@ public:
 	int										cmd_ison(Command to_execute, User *cmd_init);
 	int										cmd_topic(Command to_execute, User *cmd_init);
 	void									send_motd(Command to_execute, User *cmd_init);
-	void									send_response(Command to_execute, const std::string from, User *cmd_init, int responce);
+	void									send_response(const std::string from, User *cmd_init, int response,
+														std::string arg1, std::string arg2, std::string arg3, std::string arg4);
 
 	// utils
 	/* Отправляет сообщение massage пользователю usr_ptr*/
