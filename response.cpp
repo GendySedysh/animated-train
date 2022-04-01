@@ -44,9 +44,12 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 		if (channel != NULL){
 			std::vector<std::string> user_names = channel->get_user_name_vec();
 
-			msg += channel->get_name() + " :";
+			msg += "= " + arg1 + " :";
 			for (size_t i = 0; i < user_names.size(); i++) {
-				msg += "@" + user_names[i] + " ";
+				if (channel->is_operator(find_user_by_nick(user_names[i])))
+					msg += "@" + user_names[i] + " ";
+				else
+					msg += user_names[i] + " ";
 			}
 		}
 		msg += "\n";

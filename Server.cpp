@@ -494,6 +494,8 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	case ERR_USERONCHANNEL: // Пользователь уже в канале
 		break ;
 	default:
+		send_string_to_user(cmd_init, ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() // эта строка заставляет клиент открывать новое окно для канала
+							+ "@" + cmd_init->get_address() + " JOIN :" + channel_name + "\n");
 		if (channel->get_topic().size() > 0) {
 			send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0");
 		} else {
