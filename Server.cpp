@@ -17,6 +17,7 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["ONLINE"] = &Server::cmd_online;
 	commands["ISON"] = &Server::cmd_ison;
 	commands["TOPIC"] = &Server::cmd_topic;
+	commands["INVITE"] = &Server::cmd_invite;
 
 	users.push_back(new User(-1));
 	users[0]->set_nick("MyBot");
@@ -494,8 +495,8 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	case ERR_USERONCHANNEL: // Пользователь уже в канале
 		break ;
 	default:
-		send_string_to_user(cmd_init, ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() // эта строка заставляет клиент открывать новое окно для канала
-							+ "@" + cmd_init->get_address() + " JOIN :" + channel_name + "\n");
+		send_string_to_user(cmd_init, ":" + cmd_init->get_info_string() // эта строка заставляет клиент открывать новое окно для канала
+							+ " JOIN :" + channel_name + "\n");
 		if (channel->get_topic().size() > 0) {
 			send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0");
 		} else {
@@ -568,6 +569,41 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 	return 0;
 }
 
+int		Server::cmd_invite(Command to_execute, User *cmd_init)
+{
+	std::vector<std::string>	arguments = to_execute.get_args();
+	if (arguments.size() < 2)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
+
+	// arguments[0] - Nickname
+	// arguments[1] - channel
+
+	User	*reciever = find_user_by_nick(arguments[0]);
+	if (reciever == NULL) {
+		return send_response(name, cmd_init, ERR_NOSUCHNICK, arguments[0], "0", "0", "0");
+	}
+
+	Channel	*channel = find_channel_by_name(arguments[1]);
+	if (channel == NULL) {
+		return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, to_execute.get_cmd(), "0", "0", "0");
+	}
+
+	int	res = channel->invite(cmd_init, reciever);
+
+	switch (res) {
+	case ERR_CHANOPRIVSNEEDED:
+		return send_response(name, cmd_init, ERR_CHANOPRIVSNEEDED, channel->get_name(), "0", "0", "0");
+	case ERR_USERONCHANNEL:
+		return send_response(name, cmd_init, ERR_USERONCHANNEL, reciever->get_nick(), channel->get_name(), "0", "0");
+	default:  // RPL_INVITING
+		send_response(name, cmd_init, RPL_INVITING, channel->get_name(), reciever->get_nick(), "0", "0"); // todo
+		if (reciever->get_away_on()) {
+			send_response(name, cmd_init, RPL_AWAY, reciever->get_nick(), reciever->get_away_message(), "0", "0");
+		}
+	}
+	return 0;
+}
+
 int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 	std::vector<std::string>	arguments = to_execute.get_args();
 
@@ -608,6 +644,8 @@ int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 	}
 	return 0;
 }
+
+
 
 /*
 	Отправляет сообщение дня по FD'шнику

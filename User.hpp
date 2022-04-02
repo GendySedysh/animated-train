@@ -44,7 +44,7 @@ public:
 	std::string		get_away_message();
 	std::string		get_address();
 	bool			get_away_on();
-	
+	std::string		get_info_string() const;
 	void			send_message(const std::string &msg) const;
 };
 

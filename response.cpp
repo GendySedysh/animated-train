@@ -57,6 +57,13 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 	case RPL_ENDRPL_NAMREPLY:		//arg1 = Имя канала
 		msg += arg1 + " :End of /NAMES list\n";
 		break;
+	case RPL_INVITING:
+		msg += arg1 + " " + arg2 + "\n"; // arg1 = Имя канала, arg2 = Ник приглашенного пользователя
+		break;
+	case RPL_AWAY:
+		// arg1 = Ник получателя сообщения, arg2 = его Away-сообщение	
+		msg += arg1 + " :" + arg2 + "\n"; 
+		break;
 	case ERR_NONICKNAMEGIVEN:
 		msg += ":No nickname given\n";
 		break;
@@ -95,6 +102,14 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 		break;
 	case ERR_CHANOPRIVSNEEDED:
 		msg += arg1 + " :You're not channel operator\n"; //arg1 = Имя канала
+		break;
+	case ERR_USERONCHANNEL:
+		// arg1 = Ник приглашенного пользователя, arg2 = Имя канала
+		msg += " " + arg1 + " " + arg2 + " :is already on channel\n";
+		break;
+	case ERR_NOSUCHNICK:
+		// arg1 = Ник пользователя
+		msg += " " + arg1 + " :No such nick/channel\n";
 		break;
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);
