@@ -446,66 +446,69 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 	if (arguments.size() < 1)
 		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
 
-	std::vector<std::string>	channels_name;
+	std::vector<std::string>	channel_names;
 	std::vector<std::string>	keys;
 	// bool						is_key = false;
 
 	// в argument[0] должны приходить только имена каналов
 	// в argument[1] должны приходить только ключи
-	tokenize(arguments[0], ',', channels_name);
+	tokenize(arguments[0], ',', channel_names);
 	if (arguments.size() >= 2)
 		tokenize(arguments[1], ',', keys);
 	// Проверка является ли то что пришло в новые вектора нужными данными
 	std::cout << "Каналы: ";
-	for (size_t i = 0; i < channels_name.size(); i++)
-		std::cout << channels_name[i] << " ";
+	for (size_t i = 0; i < channel_names.size(); i++)
+		std::cout << channel_names[i] << " ";
 	std::cout << "\nKлючи: ";
 	for (size_t i = 0; i < keys.size(); i++)
 		std::cout << keys[i] << " ";
 	std::cout << std::endl;
 
-	std::string	channel_name = arguments[0];
+	for (size_t i = 0; i < channel_names.size(); i++) {
+		std::string	channel_name = channel_names[i];
 
-	std::string	channel_key;
-	if (arguments.size() > 1) {		// Пробуем найти key для канала
-		channel_key = arguments[1];
-	} else {						// Если key нет, то он пустая строка
-		channel_key = "";
-	}
-
-	Channel	*channel = find_channel_by_name(channel_name);
-	int		error_code = 0;
-
-	if (channel == NULL) {	// Создаём канал
-		channel = new Channel(channel_name, cmd_init, channel_key);
-		channels.push_back(channel);
-	} else {				// Добавляем в канал если канал уже существует
-		error_code = channel->add_user_to_channel(cmd_init, channel_key);
-	}
-	
-	switch (error_code) {
-	case ERR_BADCHANNELKEY:
-		std::cout << cmd_init->get_nick() << " tried invalid key in " << channel_name << ", key = " << channel_key << std::endl;
-		// send_response(to_execute, name, cmd_init, ERR_BADCHANNELKEY); // Тут должна быть отправка ошибки
-		// break; //  Закомментировал, пока не разобрался, какой ответ отправлять
-	case ERR_INVITEONLYCHAN:
-		std::cout << cmd_init->get_nick() << " tried joining " << channel_name << ", which is invite only" << std::endl;
-		// send_response(to_execute, name, cmd_init, ERR_INVITEONLYCHAN); // Тут должна быть отправка ошибки
-		break; //  Закомментировал, пока не разобрался, какой ответ отправлять
-	case ERR_USERONCHANNEL: // Пользователь уже в канале
-		break ;
-	default:
-		send_string_to_user(cmd_init, ":" + cmd_init->get_info_string() // эта строка заставляет клиент открывать новое окно для канала
-							+ " JOIN :" + channel_name + "\n");
-		if (channel->get_topic().size() > 0) {
-			send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0");
-		} else {
-			send_response(name, cmd_init, RPL_NOTOPIC, channel->get_name(), "0", "0", "0");
+		std::string	channel_key;
+		try {
+			channel_key = keys.at(i); // Пробуем найти key для канала
+		} catch (const std::out_of_range &e) {
+			channel_key = "";  // Если key нет, то он пустая строка
 		}
-		send_response(name, cmd_init, RPL_NAMREPLY, channel->get_name(), "0", "0", "0");
-		send_response(name, cmd_init, RPL_ENDRPL_NAMREPLY, channel->get_name(), "0", "0", "0");
-	}
+
+		Channel	*channel = find_channel_by_name(channel_name);
+		int		error_code = 0;
+
+		if (channel == NULL) {	// Создаём канал
+			channel = new Channel(channel_name, cmd_init, channel_key);
+			channels.push_back(channel);
+		} else {				// Добавляем в канал если канал уже существует
+			error_code = channel->add_user_to_channel(cmd_init, channel_key);
+		}
+		
+		switch (error_code) {
+		case ERR_BADCHANNELKEY:
+			std::cout << cmd_init->get_nick() << " tried invalid key in " << channel_name << ", key = " << channel_key << std::endl;
+			// send_response(to_execute, name, cmd_init, ERR_BADCHANNELKEY); // Тут должна быть отправка ошибки
+			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+		case ERR_INVITEONLYCHAN:
+			std::cout << cmd_init->get_nick() << " tried joining " << channel_name << ", which is invite only" << std::endl;
+			// send_response(to_execute, name, cmd_init, ERR_INVITEONLYCHAN); // Тут должна быть отправка ошибки
+			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+		case ERR_USERONCHANNEL: // Пользователь уже в канале
+			break ;
+		default:
+			send_string_to_user(cmd_init, ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() // эта строка заставляет клиент открывать новое окно для канала
+								+ "@" + cmd_init->get_address() + " JOIN :" + channel->get_name() + "\n");
+			if (channel->get_topic().size() > 0) {
+				send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0");
+			} else {
+				send_response(name, cmd_init, RPL_NOTOPIC, channel->get_name(), "0", "0", "0");
+			}
+			send_response(name, cmd_init, RPL_NAMREPLY, channel->get_name(), "0", "0", "0");
+			send_response(name, cmd_init, RPL_ENDRPL_NAMREPLY, channel->get_name(), "0", "0", "0");
+		}
 	
+		
+	}
 	
 	return (0);
 }
@@ -618,7 +621,7 @@ int		Server::cmd_topic(Command to_execute, User *cmd_init) {
 		return send_response(name, cmd_init, ERR_NOTONCHANNEL, arguments[0], "0", "0", "0");
 	
 	if (arguments.size() < 2) {
-		send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0"); // FIXME: логика RPL_TOPIC в send_response
+		send_response(name, cmd_init, RPL_TOPIC, channel->get_name(), "0", "0", "0");
 	} else {
 
 		std::string		new_topic = "";
