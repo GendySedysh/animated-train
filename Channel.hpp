@@ -38,6 +38,7 @@ public:
 	int		delete_user_from_channel(User *user);
 	int		add_user_to_channel_operator(User *user);
 	void	send_message_to_channel(std::string message, Server *server, bool notice, User *sender);
+	void	send_string_to_channel(std::string message);
 
 	// Flags methods
 	void	set_flag(unsigned char flag);

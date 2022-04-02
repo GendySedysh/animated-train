@@ -302,8 +302,10 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 		return send_response(name, cmd_init, ERR_NORECIPIENT, to_execute.get_cmd(), "0", "0", "0");
 
 	// Убираем двоеточие у первого слова сообщения
-	if (arguments.size() > 1 && arguments[i][0] == ':')
-		arguments[i] = arguments[i].erase(arguments[i].find(':'), 1);
+	if (arguments.size() > 1 && arguments[i] != "") {
+		if (arguments[i][0] == ':')
+			arguments[i] = arguments[i].erase(0, 1);
+	}
 	else
 		return send_response(name, cmd_init, ERR_NOTEXTTOSEND, "0", "0", "0", "0");
 
@@ -532,13 +534,18 @@ int		Server::cmd_kick(Command to_execute, User *cmd_init)
 	if (kick_from->is_operator(cmd_init) == false)
 		return send_response(name, cmd_init, ERR_CHANOPRIVSNEEDED, arguments[0], "0", "0", "0");
 
-	to_send += "KICK " + kick_from->get_name() + " " + kick_this->get_nick();
+	to_send = ":" + cmd_init->get_info_string() + " KICK " + kick_from->get_name() + " " +
+				kick_this->get_nick() + " " + cmd_init->get_nick() + " :";
 	for (size_t i = 2; i < arguments.size(); i++)
 		to_send += " " + arguments[i];
 	to_send += "\n";
 
+
+	std::vector<std::string> send_to = kick_from->get_user_name_vec();
+	for (size_t i = 0; i < send_to.size(); i++)
+		send_string_to_user(find_user_by_nick(send_to[i]), to_send);
+	
 	kick_from->delete_user_from_channel(kick_this);
-	kick_from->send_message_to_channel(to_send, this, false, cmd_init);
 	return (0);
 }
 
@@ -563,9 +570,10 @@ int		Server::cmd_part(Command to_execute, User *cmd_init)
 
 		kick_from.push_back(find_channel_by_name(arguments[i]));
 	}
-	
+
 	for (size_t i = 0; i < kick_from.size(); i++) {
-		kick_from[i]->send_message_to_channel(cmd_init->get_nick() + ": leaved the channel\n", this, false, cmd_init);
+		to_send = ":" + cmd_init->get_info_string() + " PART " + kick_from[i]->get_name() + "\n";
+		kick_from[i]->send_string_to_channel(to_send);
 		kick_from[i]->delete_user_from_channel(cmd_init);
 	}
 

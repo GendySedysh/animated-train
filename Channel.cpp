@@ -50,6 +50,8 @@ bool	Channel::is_in_channel(User *user) {
 }
 
 int		Channel::add_user_to_channel(User *user, std::string &key) {
+	std::string	to_send;
+
 	if (this->is_private() && key != this->key) {
 		return ERR_BADCHANNELKEY;
 	} else if (this->is_invite_only() && !is_invited(user)) {
@@ -60,6 +62,8 @@ int		Channel::add_user_to_channel(User *user, std::string &key) {
 		} else {
 			users.push_back(user);
 			remove_invited(user);
+			to_send = ":" + user->get_info_string() + " JOIN :" + name + "\n";
+			send_string_to_channel(to_send);
 		}
 	}
 	return 0;
@@ -89,6 +93,11 @@ void	Channel::send_message_to_channel(std::string message, Server *server, bool 
 		}
 		header.clear();
 	}
+}
+
+void	Channel::send_string_to_channel(std::string message) {
+	for (size_t i = 0; i < users.size(); i++)
+		send(users[i]->get_fd(), const_cast<char*>(message.c_str()), message.length(), 0);
 }
 
 void	Channel::set_flag(unsigned char flag)
@@ -129,12 +138,8 @@ bool	Channel::is_moderated() const {
 int		Channel::invite(User *sender, User *reciever) {
 	if (this->is_invite_only() && !is_operator(sender)) {
 		return (ERR_CHANOPRIVSNEEDED);
-	} else if (is_in_channel(reciever)) {
-		return (ERR_USERONCHANNEL);
 	} else {
 		invited_users.push_back(reciever);
-		std::string	msg = ":" + sender->get_info_string() + " INVITE " + reciever->get_nick() + " " + name + "\n";
-		reciever->send_message(msg);
 		return (RPL_INVITING);
 	}
 }
