@@ -129,8 +129,12 @@ bool	Channel::is_moderated() const {
 int		Channel::invite(User *sender, User *reciever) {
 	if (this->is_invite_only() && !is_operator(sender)) {
 		return (ERR_CHANOPRIVSNEEDED);
+	} else if (is_in_channel(reciever)) {
+		return (ERR_USERONCHANNEL);
 	} else {
 		invited_users.push_back(reciever);
+		std::string	msg = ":" + sender->get_info_string() + " INVITE " + reciever->get_nick() + " " + name + "\n";
+		reciever->send_message(msg);
 		return (RPL_INVITING);
 	}
 }

@@ -39,3 +39,8 @@ void			User::send_message(const std::string &msg) const {
 	if (msg.size() > 0)
 		send(user_fd, msg.c_str(), msg.size(), 0);
 }
+
+std::string	User::get_info_string() const
+{
+	return std::string(nick + "!" + username + "@" + address);
+}
