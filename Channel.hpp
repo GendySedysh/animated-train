@@ -25,6 +25,7 @@ public:
 	~Channel();
 
 	std::string	get_name();
+	void		set_name(std::string new_name);
 	std::vector<std::string>	get_user_name_vec();
 	bool	is_operator(User *user);
 	bool	is_in_channel(User *user);

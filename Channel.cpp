@@ -30,6 +30,7 @@ std::vector<std::string>	Channel::get_user_name_vec() {
 }
 
 std::string	Channel::get_name() { return this->name; }
+void		Channel::set_name(std::string new_name) { this->name = new_name; }
 
 bool	Channel::is_operator(User *user) {
 	for (size_t i = 0; i < operators.size(); i++) {
@@ -60,7 +61,7 @@ int		Channel::add_user_to_channel(User *user, std::string &key) {
 
 	if (this->is_limited() == true && ((this->user_limit - users.size()) <= 0))
 		return ERR_CHANNELISFULL;
-	if (this->is_private() && key != this->key) {
+	if (this->is_keyed() == true && key != this->key) {
 		return ERR_BADCHANNELKEY;
 	} else if (this->is_invite_only() && !is_invited(user)) {
 		return ERR_INVITEONLYCHAN;
@@ -79,8 +80,20 @@ int		Channel::add_user_to_channel(User *user, std::string &key) {
 
 int		Channel::delete_user_from_channel(User *user) {
 	for (size_t i = 0; i < users.size(); i++) {
-		if (user == users[i])
+		if (user == users[i]){
+			if (is_operator(users[i]) == true)
+			{
+				if (operators.size() == 1 && users.size() >= 2)
+				{
+					std::string to_send;
+
+					to_send = ":" + operators[0]->get_info_string() + " MODE " + this->name + " +o" + " " + users[1]->get_nick() + "\n";
+					send_string_to_channel(to_send);
+					add_user_to_channel_operator(users[1]);
+				}
+			}
 			users.erase(users.begin() + i);
+		}
 	}
 	return 1;
 }
@@ -98,8 +111,10 @@ int		Channel::delete_user_from_channel_operator(User *user){
 void	Channel::delete_offline_users() {
 	std::string to_send;
 
-	for (size_t i = 0; i < users.size(); i++) {
-		if (users[i]->get_auth_status() == false) {
+	for (size_t i = 0; i < users.size(); i++)
+	{
+		if (users[i]->get_auth_status() == false)
+		{
 			delete_user_from_channel(users[i]);
 			to_send = ":" + users[i]->get_info_string() + " PART " + this->get_name() + "\n";
 			this->send_string_to_channel(to_send);
@@ -107,15 +122,8 @@ void	Channel::delete_offline_users() {
 	}
 
 	for (size_t i = 0; i < operators.size(); i++) {
-		if (operators[i]->get_auth_status() == false) {
+		if (operators[i]->get_auth_status() == false)
 			delete_user_from_channel_operator(operators[i]);
-		}
-	}
-	if (operators.size() == 0) {
-		if (users.size() != 0)
-			add_user_to_channel_operator(users[0]);
-		else
-			std::cout << "ТУТ ДОЛЖНО БЫТЬ УДАЛЕНИЕ КАНАЛА\n";
 	}
 }
 

@@ -155,8 +155,11 @@ void	Server::check_users(){
 }
 
 void	Server::check_channels(){
-	for (size_t i = 0; i < channels.size(); i++)
+	for (size_t i = 0; i < channels.size(); i++) {
 		channels[i]->delete_offline_users();
+		if (channels[i]->get_user_name_vec().size() == 0)
+			channels[i]->set_name("deleted");
+	}
 }
 
 void	Server::cmd_handler(std::string input, User *cmd_init)
@@ -361,12 +364,6 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	return 0;
 }
 
-
-/*
-        RPL_CHANNELMODEIS
-        ERR_NOSUCHNICK
-        ERR_NOTONCHANNEL            ERR_KEYSET
-*/
 int		Server::cmd_mode(Command to_execute, User *cmd_init)
 {
 	std::vector<std::string>	arguments = to_execute.get_args();
@@ -385,7 +382,7 @@ int		Server::cmd_mode(Command to_execute, User *cmd_init)
 
 	if (to_execute.get_num_of_args() == 1) { //ТУТ Должна отправляться строка-сообщение о активных флагах
 		std::string to_send;
-		//":IRCat 324 user <chname> +int"
+
 		to_send = ":" + this->name + " 324 " + cmd_init->get_nick() + " " + channel_to_mode->get_name() +
 					" " + channel_to_mode->flag_status() + "\n";
 		send_string_to_user(cmd_init, to_send);
@@ -627,10 +624,7 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 			send_response(name, cmd_init, RPL_NAMREPLY, channel->get_name(), "0", "0", "0");
 			send_response(name, cmd_init, RPL_ENDRPL_NAMREPLY, channel->get_name(), "0", "0", "0");
 		}
-	
-		
 	}
-	
 	return (0);
 }
 
