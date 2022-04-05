@@ -24,6 +24,16 @@
 #include "answers.h"
 #include "Bot.hpp"
 
+#define CH_PRIVATE		0b00000001
+#define CH_SECRET		0b00000010
+#define CH_INVITEONLY	0b00000100
+#define CH_TOPICSETOP	0b00001000
+#define CH_NOMSGFROMOUT 0b00010000
+#define CH_MODERATED	0b00100000
+#define CH_LIMITED		0b01000000
+#define CH_KEYSTATUS	0b10000000
+#define CH_OPERATOR		0b00000011
+
 class User;
 class Command;
 class Channel;
@@ -46,7 +56,8 @@ private:
 	std::string								name;
 	Bot										*weather_bot;
 	
-	std::map<std::string, MappedCMD>			commands;
+	std::map<std::string, MappedCMD>		commands;
+	std::map<char, unsigned int>				flags;
 public:
 	Server(int port, char *pass);
 	~Server();
@@ -58,6 +69,7 @@ public:
 	void									listen_socket();
 	void									grab_connection();
 	void									check_users();
+	void									check_channels();
 	int										process_messages();
 
 	// cmd
@@ -85,6 +97,7 @@ public:
 	int										cmd_ison(Command to_execute, User *cmd_init);
 	int										cmd_topic(Command to_execute, User *cmd_init);
 	int										cmd_invite(Command to_execute, User *cmd_init);
+	int										cmd_mode(Command to_execute, User *cmd_init);
 	void									send_motd(Command to_execute, User *cmd_init);
 	int										send_response(const std::string from, User *cmd_init, int response,
 														std::string arg1, std::string arg2, std::string arg3, std::string arg4);
@@ -110,5 +123,6 @@ int		ft_isalpha(int c);
 int		ft_isdigit(int c);
 int		ft_isspec(int c);
 bool	nick_is_valid(std::string nick);
+bool	channel_name_is_valid(std::string channel_name);
 void	tokenize(std::string &str, const char delim, std::vector<std::string> &out);
 #endif

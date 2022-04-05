@@ -41,6 +41,25 @@ bool		nick_is_valid(std::string nick)
 	return (true);
 }
 
+
+int		ft_chan_uinvalid(int c)
+{
+	if (!(c >= 33 && c <= 126) || c == '\r' || c == '\n' || c == ' ' || c == '\0')
+		return (0);
+	return (1);
+}
+
+bool		channel_name_is_valid(std::string channel_name)
+{
+	if (channel_name[0] != '#' && channel_name[0] != '&')
+		return false;
+	for (size_t i = 0; i < channel_name.size(); i++){
+		if (ft_chan_uinvalid(channel_name[i]) == 0)
+			return false;
+	} 
+	return (true);
+}
+
 void tokenize(std::string &str, const char delim, std::vector<std::string> &out)
 {
     size_t start;

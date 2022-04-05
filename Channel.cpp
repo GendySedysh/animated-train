@@ -4,10 +4,16 @@ Channel::Channel(std::string &name, User *creator, std::string &key)
 {
 	this->name = name;
 	this->key = key;
+	this->user_limit = 30;
 	this->topic = "";
 	this->flags = 0b00000000;
 	this->operators.push_back(creator);
 	this->users.push_back(creator);
+
+	if (this->key.length() > 0)
+		set_flag(CH_KEYSTATUS);
+	set_flag(CH_NOMSGFROMOUT);
+	set_flag(CH_LIMITED);
 }
 
 Channel::~Channel()
@@ -52,6 +58,8 @@ bool	Channel::is_in_channel(User *user) {
 int		Channel::add_user_to_channel(User *user, std::string &key) {
 	std::string	to_send;
 
+	if (this->is_limited() == true && ((this->user_limit - users.size()) <= 0))
+		return ERR_CHANNELISFULL;
 	if (this->is_private() && key != this->key) {
 		return ERR_BADCHANNELKEY;
 	} else if (this->is_invite_only() && !is_invited(user)) {
@@ -76,8 +84,40 @@ int		Channel::delete_user_from_channel(User *user) {
 	}
 	return 1;
 }
+
 int		Channel::add_user_to_channel_operator(User *user) {this->operators.push_back(user); return 0;}
 
+int		Channel::delete_user_from_channel_operator(User *user){
+	for (size_t i = 0; i < operators.size(); i++) {
+		if (user == operators[i])
+			operators.erase(operators.begin() + i);
+	}
+	return 1;
+}
+
+void	Channel::delete_offline_users() {
+	std::string to_send;
+
+	for (size_t i = 0; i < users.size(); i++) {
+		if (users[i]->get_auth_status() == false) {
+			delete_user_from_channel(users[i]);
+			to_send = ":" + users[i]->get_info_string() + " PART " + this->get_name() + "\n";
+			this->send_string_to_channel(to_send);
+		}
+	}
+
+	for (size_t i = 0; i < operators.size(); i++) {
+		if (operators[i]->get_auth_status() == false) {
+			delete_user_from_channel_operator(operators[i]);
+		}
+	}
+	if (operators.size() == 0) {
+		if (users.size() != 0)
+			add_user_to_channel_operator(users[0]);
+		else
+			std::cout << "ТУТ ДОЛЖНО БЫТЬ УДАЛЕНИЕ КАНАЛА\n";
+	}
+}
 
 void	Channel::send_message_to_channel(std::string message, Server *server, bool notice, User *sender) {
 	std::string header;
@@ -87,7 +127,7 @@ void	Channel::send_message_to_channel(std::string message, Server *server, bool 
 			header = ":" + sender->get_nick() + "!" + sender->get_username() + "@" + sender->get_address() + " PRIVMSG " + this->get_name() + " :";
 		else
 			header = ":" + sender->get_nick() + "!" + sender->get_username() + "@" + sender->get_address() + " NOTICE " + this->get_name() + " :";
-		if (is_in_channel(sender) == true && users[i]->get_auth_status() == true) {
+		if (users[i] != sender && users[i]->get_auth_status() == true) {
 			server->send_string_to_user(users[i], header);
 			server->send_string_to_user(users[i], message);
 		}
@@ -128,11 +168,37 @@ bool	Channel::is_topic_set_by_operator() const {
 }
 
 bool	Channel::is_reachable_from_outside() const {
-	return !(static_cast<bool>(this->flags & CH_NOMSGFROMOUT));
+	return static_cast<bool>(this->flags & CH_NOMSGFROMOUT);
 }
 
 bool	Channel::is_moderated() const {
 	return static_cast<bool>(this->flags & CH_MODERATED);
+}
+
+bool	Channel::is_limited() const {
+	return static_cast<bool>(this->flags & CH_LIMITED);
+}
+bool	Channel::is_keyed() const {
+	return static_cast<bool>(this->flags & CH_KEYSTATUS);
+}
+
+std::string	Channel::flag_status() {
+	std::string	flags;
+	std::string output;
+
+	if (is_invite_only() == true)
+		flags += 'i';
+	if (is_topic_set_by_operator() == true)
+		flags += 't';
+	if (is_reachable_from_outside() == true)
+		flags += 'n';
+	if (is_keyed() == true)
+		flags += 'k';
+	if (is_limited() == true)
+		flags += 'l';
+	if (flags.length() > 0)
+		output = '+' + flags;
+	return output;
 }
 
 int		Channel::invite(User *sender, User *reciever) {
@@ -166,3 +232,9 @@ int		Channel::set_topic(User *user, const std::string &topic)
 const std::string		&Channel::get_topic() const {
 	return (this->topic);
 }
+
+void		Channel::set_key(std::string	new_key) { this->key = new_key; }
+std::string	Channel::get_key() { return this->key; }
+
+void		Channel::set_limit(int new_key) { this->user_limit = new_key; }
+int			Channel::get_limit() { return this->user_limit; }

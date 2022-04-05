@@ -12,6 +12,7 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 	std::string	msg = ":" + from + " " + ss.str() + " " + cmd_init->get_nick() + " ";
 
 	Channel	*channel = NULL;
+	User	*to_invite = NULL;
 	switch (response)
 	{
 	case RPL_ISON:
@@ -58,11 +59,20 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 		msg += arg1 + " :End of /NAMES list\n";
 		break;
 	case RPL_INVITING:
-		msg += arg1 + " " + arg2 + "\n"; // arg1 = Имя канала, arg2 = Ник приглашенного пользователя
+		to_invite = find_user_by_nick(arg2);
+		msg += arg2 + " " + arg1 + "\n"; // arg1 = Имя канала, arg2 = Ник приглашенного пользователя
+		send_string_to_user(to_invite, msg);
 		break;
 	case RPL_AWAY:
 		// arg1 = Ник получателя сообщения, arg2 = его Away-сообщение	
-		msg += arg1 + " :" + arg2 + "\n"; 
+		msg += arg1 + " :" + arg2 + "\n";
+		break;
+	case RPL_CHANNELMODEIS:
+		channel = find_channel_by_name(arg1);	//arg1 = Имя канала
+		msg += arg1 + " <mode> <mode params>";
+		break;
+	case ERR_UNKNOWNMODE:
+		msg += arg1 + " :is unknown mode char to me\n"; // arg1 = Символ MODE который не удалось определить
 		break;
 	case ERR_NONICKNAMEGIVEN:
 		msg += ":No nickname given\n";
@@ -110,6 +120,15 @@ int	Server::send_response(const std::string from, User *cmd_init, int response,
 	case ERR_NOSUCHNICK:
 		// arg1 = Ник пользователя
 		msg += " " + arg1 + " :No such nick/channel\n";
+		break;
+	case ERR_CHANNELISFULL:
+		msg += arg1 + " :Cannot join channel (+l)\n"; // arg1 = Имя канала
+		break;
+	case ERR_BADCHANNELKEY:
+		msg += arg1 + " :Cannot join channel (+k)\n"; // arg1 = Имя канала
+		break;
+	case ERR_INVITEONLYCHAN:
+		msg += arg1 + " :Cannot join channel (+i)\n"; // arg1 = Имя канала
 		break;
 	}
 	send(cmd_init->get_fd(), msg.c_str(), msg.size(), 0);

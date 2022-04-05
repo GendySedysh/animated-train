@@ -18,6 +18,14 @@ Server::Server(int port, char *pass): port(port), timeout(1), password(pass), na
 	commands["ISON"] = &Server::cmd_ison;
 	commands["TOPIC"] = &Server::cmd_topic;
 	commands["INVITE"] = &Server::cmd_invite;
+	commands["MODE"] = &Server::cmd_mode;
+
+	flags['i'] = CH_INVITEONLY;
+	flags['n'] = CH_NOMSGFROMOUT;
+	flags['l'] = CH_LIMITED;
+	flags['k'] = CH_KEYSTATUS;
+	flags['t'] = CH_TOPICSETOP;
+	flags['o'] = CH_OPERATOR;
 
 	users.push_back(new User(-1));
 	users[0]->set_nick("MyBot");
@@ -144,6 +152,11 @@ void	Server::check_users(){
 		}
 		retval = 0;
 	}
+}
+
+void	Server::check_channels(){
+	for (size_t i = 0; i < channels.size(); i++)
+		channels[i]->delete_offline_users();
 }
 
 void	Server::cmd_handler(std::string input, User *cmd_init)
@@ -294,7 +307,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 
 		Channel*	channel_ptr = find_channel_by_name(arguments[i]);
 		if (channel_ptr)
-			if (channel_ptr->is_in_channel(cmd_init) == true)
+			if (channel_ptr->is_in_channel(cmd_init) == true || channel_ptr->is_reachable_from_outside() != true) //ТУТ МОЖНО СДЕЛАТЬ ПРОВЕРКУ НА MODE +n в
 				ch_message_for.push_back(channel_ptr);
 		i++;
 	}
@@ -320,7 +333,7 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	for (size_t i = 0; i < ch_message_for.size(); i++)
 		ch_message_for[i]->send_message_to_channel(to_send, this, notice, cmd_init);
 	
-	// Рассылаем сообщения в сообщение
+	// Рассылаем сообщения в личку
 	for (size_t j = 0; j < message_for.size(); j++) {
 		if (message_for[j]->get_nick() == "MyBot"){
 			weather_bot->get_command(to_execute, cmd_init, this);
@@ -346,6 +359,119 @@ int		Server::cmd_privmsg(Command to_execute, User *cmd_init)
 	ch_message_for.clear();
 	arguments.clear();
 	return 0;
+}
+
+
+/*
+        RPL_CHANNELMODEIS
+        ERR_NOSUCHNICK
+        ERR_NOTONCHANNEL            ERR_KEYSET
+*/
+int		Server::cmd_mode(Command to_execute, User *cmd_init)
+{
+	std::vector<std::string>	arguments = to_execute.get_args();
+	Channel						*channel_to_mode;
+
+	if (to_execute.get_num_of_args() < 1)
+		return send_response(name, cmd_init, ERR_NEEDMOREPARAMS, to_execute.get_cmd(), "0", "0", "0");
+
+	channel_to_mode = find_channel_by_name(arguments[0]);
+
+	if (channel_to_mode == NULL)
+		return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, arguments[0], "0", "0", "0");
+
+	if (channel_to_mode->is_operator(cmd_init) == false)
+		return send_response(name, cmd_init, ERR_CHANOPRIVSNEEDED, arguments[0], "0", "0", "0");
+
+	if (to_execute.get_num_of_args() == 1) { //ТУТ Должна отправляться строка-сообщение о активных флагах
+		std::string to_send;
+		//":IRCat 324 user <chname> +int"
+		to_send = ":" + this->name + " 324 " + cmd_init->get_nick() + " " + channel_to_mode->get_name() +
+					" " + channel_to_mode->flag_status() + "\n";
+		send_string_to_user(cmd_init, to_send);
+		return 0;
+	}
+	else { // ТУТ должна проводиться обработка флагов
+		if (arguments[1].size() == 2)
+		{
+			std::string		to_send;
+			std::string		to_add = " ";
+			char			operand = arguments[1][0];
+			unsigned int	flag = flags[arguments[1][1]];
+
+			if (operand != '+' && operand != '-')
+				return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");				
+
+			switch (flag)
+			{
+			case CH_OPERATOR:
+				if (arguments[2] != ""){
+					User *to_mod = find_user_by_nick(arguments[2]);
+					
+					if (to_mod == NULL || channel_to_mode->is_in_channel(to_mod) == false)
+						return send_response(name, cmd_init, ERR_NOSUCHNICK, arguments[2], "0", "0", "0");
+					
+					if (operand == '+')
+						channel_to_mode->add_user_to_channel_operator(to_mod);
+					else
+						channel_to_mode->delete_user_from_channel_operator(to_mod);
+					to_add = to_mod->get_nick();
+				}
+				else
+					return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+				break;
+			case CH_LIMITED:
+				if (operand == '+') {
+					if (arguments[2] != "") {
+						int new_limit = atoi(arguments[2].c_str());
+						channel_to_mode->set_limit(new_limit);
+						to_add = arguments[2];
+					}
+					else
+						return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+				}
+				else if (operand == '-') {}
+				else
+					return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+				break;
+			case CH_KEYSTATUS:
+				if (operand == '+') {
+					if (arguments[2] != "") {
+						channel_to_mode->set_key(arguments[2]);
+						to_add = arguments[2];
+					}
+					else
+						return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+				}
+				else if (operand == '-') {}
+				else
+					return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+				break;
+			case CH_INVITEONLY:
+				break;
+			case CH_TOPICSETOP:
+				break;
+			case CH_NOMSGFROMOUT:
+				break;
+			default:
+				return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+			}
+
+			if (operand == '+')
+				channel_to_mode->set_flag(flag);
+			if (operand == '-')
+				channel_to_mode->unset_flag(flag);
+
+			to_send = ":" + cmd_init->get_info_string() + " MODE " + arguments[0] + " " + operand + arguments[1][1];
+			if (flag == CH_OPERATOR || flag == CH_LIMITED || flag == CH_KEYSTATUS)
+				to_send += " " + to_add;
+			to_send += "\n";
+			channel_to_mode->send_string_to_channel(to_send);
+			return 0;
+		}
+		else
+			return send_response(name, cmd_init, ERR_UNKNOWNMODE, arguments[1], "0", "0", "0");
+	}
 }
 
 /*
@@ -450,21 +576,10 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 
 	std::vector<std::string>	channel_names;
 	std::vector<std::string>	keys;
-	// bool						is_key = false;
 
-	// в argument[0] должны приходить только имена каналов
-	// в argument[1] должны приходить только ключи
 	tokenize(arguments[0], ',', channel_names);
 	if (arguments.size() >= 2)
 		tokenize(arguments[1], ',', keys);
-	// Проверка является ли то что пришло в новые вектора нужными данными
-	std::cout << "Каналы: ";
-	for (size_t i = 0; i < channel_names.size(); i++)
-		std::cout << channel_names[i] << " ";
-	std::cout << "\nKлючи: ";
-	for (size_t i = 0; i < keys.size(); i++)
-		std::cout << keys[i] << " ";
-	std::cout << std::endl;
 
 	for (size_t i = 0; i < channel_names.size(); i++) {
 		std::string	channel_name = channel_names[i];
@@ -475,6 +590,9 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 		} catch (const std::out_of_range &e) {
 			channel_key = "";  // Если key нет, то он пустая строка
 		}
+
+		if (channel_name_is_valid(channel_name) == false)
+			return send_response(name, cmd_init, ERR_NOSUCHCHANNEL, channel_name, "0", "0", "0");
 
 		Channel	*channel = find_channel_by_name(channel_name);
 		int		error_code = 0;
@@ -487,13 +605,14 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 		}
 		
 		switch (error_code) {
+		case ERR_CHANNELISFULL:
+			return send_response(name, cmd_init, ERR_CHANNELISFULL, channel_name, "0", "0", "0");
+			break;
 		case ERR_BADCHANNELKEY:
-			std::cout << cmd_init->get_nick() << " tried invalid key in " << channel_name << ", key = " << channel_key << std::endl;
-			// send_response(to_execute, name, cmd_init, ERR_BADCHANNELKEY); // Тут должна быть отправка ошибки
+			return send_response(name, cmd_init, ERR_BADCHANNELKEY, channel_name, "0", "0", "0");
 			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
 		case ERR_INVITEONLYCHAN:
-			std::cout << cmd_init->get_nick() << " tried joining " << channel_name << ", which is invite only" << std::endl;
-			// send_response(to_execute, name, cmd_init, ERR_INVITEONLYCHAN); // Тут должна быть отправка ошибки
+			return send_response(name, cmd_init, ERR_INVITEONLYCHAN, channel_name, "0", "0", "0");
 			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
 		case ERR_USERONCHANNEL: // Пользователь уже в канале
 			break ;
