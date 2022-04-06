@@ -607,11 +607,12 @@ int		Server::cmd_join(Command to_execute, User *cmd_init)
 			break;
 		case ERR_BADCHANNELKEY:
 			return send_response(name, cmd_init, ERR_BADCHANNELKEY, channel_name, "0", "0", "0");
-			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+			break;
 		case ERR_INVITEONLYCHAN:
 			return send_response(name, cmd_init, ERR_INVITEONLYCHAN, channel_name, "0", "0", "0");
-			break; //  Закомментировал, пока не разобрался, какой ответ отправлять
+			break;
 		case ERR_USERONCHANNEL: // Пользователь уже в канале
+			return send_response(name, cmd_init, ERR_USERONCHANNEL, cmd_init->get_nick(), channel_name, "0", "0");
 			break ;
 		default:
 			send_string_to_user(cmd_init, ":" + cmd_init->get_nick() + "!" + cmd_init->get_username() // эта строка заставляет клиент открывать новое окно для канала

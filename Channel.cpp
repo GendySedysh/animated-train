@@ -61,7 +61,7 @@ int		Channel::add_user_to_channel(User *user, std::string &key) {
 
 	if (this->is_limited() == true && ((this->user_limit - users.size()) <= 0))
 		return ERR_CHANNELISFULL;
-	if (this->is_keyed() == true && key != this->key) {
+	if (this->is_keyed() == true && key != this->key && !is_invited(user)) {
 		return ERR_BADCHANNELKEY;
 	} else if (this->is_invite_only() && !is_invited(user)) {
 		return ERR_INVITEONLYCHAN;
@@ -83,14 +83,15 @@ int		Channel::delete_user_from_channel(User *user) {
 		if (user == users[i]){
 			if (is_operator(users[i]) == true)
 			{
-				if (operators.size() == 1 && users.size() >= 2)
-				{
+				if (operators.size() == 1 && users.size() >= 2){
 					std::string to_send;
 
 					to_send = ":" + operators[0]->get_info_string() + " MODE " + this->name + " +o" + " " + users[1]->get_nick() + "\n";
-					send_string_to_channel(to_send);
+					send_string_to_channel_exept_user(to_send, users[i]);
 					add_user_to_channel_operator(users[1]);
 				}
+				else
+					delete_user_from_channel_operator(users[i]);
 			}
 			users.erase(users.begin() + i);
 		}
@@ -115,14 +116,16 @@ void	Channel::delete_offline_users() {
 	{
 		if (users[i]->get_auth_status() == false)
 		{
+			std::string	nick_to_delete = users[i]->get_nick();
 			delete_user_from_channel(users[i]);
-			to_send = ":" + users[i]->get_info_string() + " PART " + this->get_name() + "\n";
+			to_send = ":" + nick_to_delete + " PART " + this->get_name() + "\n";
+			std::cout << to_send;
 			this->send_string_to_channel(to_send);
 		}
 	}
 
 	for (size_t i = 0; i < operators.size(); i++) {
-		if (operators[i]->get_auth_status() == false)
+		if (operators[i]->get_auth_status() == false || is_in_channel(operators[i]) == false)
 			delete_user_from_channel_operator(operators[i]);
 	}
 }
@@ -146,6 +149,12 @@ void	Channel::send_message_to_channel(std::string message, Server *server, bool 
 void	Channel::send_string_to_channel(std::string message) {
 	for (size_t i = 0; i < users.size(); i++)
 		send(users[i]->get_fd(), const_cast<char*>(message.c_str()), message.length(), 0);
+}
+
+void	Channel::send_string_to_channel_exept_user(std::string message, User *exept_user) {
+	for (size_t i = 0; i < users.size(); i++)
+		if (users[i] != exept_user)
+			send(users[i]->get_fd(), const_cast<char*>(message.c_str()), message.length(), 0);
 }
 
 void	Channel::set_flag(unsigned char flag)
