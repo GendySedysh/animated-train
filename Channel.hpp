@@ -36,6 +36,7 @@ public:
 	void	delete_offline_users();
 	void	send_message_to_channel(std::string message, Server *server, bool notice, User *sender);
 	void	send_string_to_channel(std::string message);
+	void	send_string_to_channel_exept_user(std::string message, User *exept_user);
 
 	void		set_key(std::string	new_key);
 	std::string	get_key();
