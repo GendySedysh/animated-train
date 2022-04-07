@@ -129,8 +129,8 @@ int		Server::process_messages()
 					User *usr_ptr = find_user_by_fd(userFDs[i].fd);
 					cmd_handler(message, usr_ptr);
 				}
-				message.clear();
 			}
+			message.clear();
 			userFDs[i].revents = 0;
 		}
 	}
